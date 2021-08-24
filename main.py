@@ -24,19 +24,8 @@ class RaspberryPiClient:
         self.session = self._await(self.create_session())
 
 
-    async def create_session(self, **kwargs):
+    async def create_session(self, **kwargs) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(**kwargs)
-
-
-
-
-    
-
-    
-
-
-
-
 
 
 def main(): 
