@@ -33,10 +33,8 @@ def main():
     emb = helper.build_embed("hi", fields=(("hi", None)))
     emb_json = helper.embeds_to_json(emb)
     print(emb_json)
-    rm._await(helper.discord_report(rm.session, json={"embeds": emb_json}))
+    rm._await(helper.discord_report(rm.session, json={"content": None, "embeds": emb_json}))
     return
-
-
 
 
 if __name__ == "__main__":
