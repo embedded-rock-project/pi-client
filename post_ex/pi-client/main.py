@@ -30,9 +30,9 @@ class RockDetection:
     This function is explictly not suppose to be used outside the class
     Sends data through a given post route
     """
-    def __send_post_json(self, post_route: str = "", data: dict = {}) -> None:
-        if isinstance(post_route, str) and post_route != "":
-            if isinstance(data, dict) and data != {}:
+    def __send_post_json(self, post_route: str = None, data: dict = None) -> None:
+        if isinstance(post_route, str):
+            if isinstance(data, dict):
                 r = requests.post(post_route, json=data)
                 # r.json() returns the returned json data from the server
                 if r.status_code == 200:
