@@ -40,9 +40,12 @@ class RequestMaker:
 
     # for daniel
     def request(self, method: str, url: str, **kwargs):
-        return self._await(self._await(self.session.request(method, url, **kwargs)).text())
+        return self._await(self.session.request(method, url, **kwargs))
+
+    def handle_request_text(self, request: aiohttp.ClientResponse) -> str:
+        return self._await(request.text())
 
     # for not daniel
-    async def request(self, method: str, url: str, **kwargs):
+    async def async_request(self, method: str, url: str, **kwargs):
         async with self.session.request(method, url, **kwargs) as req:
             return await req.text()
