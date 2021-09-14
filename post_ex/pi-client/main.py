@@ -17,8 +17,8 @@ class RockDetection:
     """
     Creates a thread for the post request (meant for slow respones)
     """
-    def send_post(self, post_route: str = "", data: dict = {}) -> None:
-        if not isinstance(post_route, str) or post_route == "":
+    def send_post(self, post_route: str = None, data: dict = None) -> None:
+        if not isinstance(post_route, str):
             if self.post_route != "":
                 r = threading.Thread(target=self.__send_post_json, args=(self.post_route, data)).start()
             else:
