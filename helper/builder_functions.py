@@ -98,10 +98,11 @@ def build_embed(
 
 if __name__ == "__main__":
     from pprint import pprint
-    emb = build_embed("hi", fields=[("hi", "hi"), ("hi", "hi")])
+    emb = build_embed(title="hi", description="bye", color=0xFFFFFF, fields=[("hi", "hi"), ("hi", "hi")])
     emb2 = build_embed("hi", fields=(("hi", "hi")))
     emb_json = embeds_to_json(emb, emb2)
     import requests
-    result = requests.post('http://8.8.8.8', json={"embeds": emb_json})
+    print("hi")
+    result = requests.post("https://discord.com/api/webhooks/887841524342226978/QQU3kU_aKr0qnZyCJdMdVFCkjzRVe7AtlMzyJcBzm0w5by4-otHhPnHaPn3LviJteeSR", json={"embeds": emb_json})
     pprint(emb_json)
     pprint(result.request.body.decode("utf-8"))

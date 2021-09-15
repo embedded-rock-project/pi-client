@@ -5,9 +5,8 @@ However, I encapsulated it in order to keep things clean.
 """
 
 
-from numbers import Number
 import RPi.GPIO as GPIO
-import time
+from http_reqs import RequestMaker
 from asyncio import sleep
 from helper.base_sensor import BaseSensor
 
@@ -23,11 +22,9 @@ class MotionSensor(BaseSensor):
         self.detecting_movement = False
         self._nowait(self.check_if_enabled())
 
-
-
-    def callback(self, channel):
-        print("There was a movement!")
-
+    def callback(self, rm: RequestMaker):
+        resp = rm.discord_report(json={"content": "There was movement!"})
+        print(rm.req_text(resp))
 
     async def check_if_enabled(self):
         while True:

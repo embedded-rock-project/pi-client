@@ -32,9 +32,8 @@ class RequestMaker:
         async with self.session.post(url=server_base_url + endpoint, json=payload) as req:
             return await req.text()
 
-    async def discord_report(self, **kwargs) -> str:
-        async with self.session.post(url=discord_base_url, **kwargs) as req:
-            return await req.text()
+    def discord_report(self, **kwargs) -> str:
+        return self.request("POST", discord_base_url, **kwargs)
 
     # for daniel
     def request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
