@@ -1,3 +1,9 @@
+"""
+All of the code here is my own -R
+Varun helped me understand the pin configuration and wrote the original design
+However, I encapsulated it in order to keep things clean.
+"""
+
 from helper.base_sensor import BaseSensor
 import RPi.GPIO as GPIO
 import time
@@ -12,6 +18,7 @@ from asyncio import sleep
 class PressureSensor(BaseSensor):
     def __init__(self, mode, setup, pin: int):
         super().__init__(mode, setup, pin)
+        self.name = "pressure sensor" # debug
         self.prev_input = 0
         self.sensor_event = self._nowait(self.pressure_check())
 

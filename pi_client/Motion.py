@@ -1,3 +1,10 @@
+"""
+All of the code here is my own -R
+Varun helped me understand the pin configuration and wrote the original design
+However, I encapsulated it in order to keep things clean.
+"""
+
+
 from numbers import Number
 import RPi.GPIO as GPIO
 import time
@@ -12,6 +19,7 @@ from ..helper import BaseSensor
 class MotionSensor(BaseSensor):
     def __init__(self, mode, setup, pin: int):
         super().__init__(mode, setup, pin)
+        self.name = "motion sensor" #debug
         self.detecting_movement = False
         self._await(self.check_if_enabled())
 

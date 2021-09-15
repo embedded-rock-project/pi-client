@@ -20,12 +20,9 @@ class RequestMaker:
         self._nowait = self.loop.create_task
         self.session = self._await(self.create_session())
 
-    # unsafe behavior.
-    def __del__(self):
-        try:
-            self._await(self.session.close())
-        except Exception as e:
-            print(e)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._await(self.session.close())
 
 
     async def create_session(self, **kwargs) -> aiohttp.ClientSession:
@@ -43,14 +40,18 @@ class RequestMaker:
     def request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
         return self._await(self.session.request(method, url, **kwargs))
 
-    def handle_request_text(self, request: aiohttp.ClientResponse) -> str:
+    # sync get text from original request.
+    # Usage: rm.req_text(rm.request("GET", "https://google.com"))
+    def req_text(self, request: aiohttp.ClientResponse) -> str:
         return self._await(request.text())
 
-    def handle_request_json(self, request: aiohttp.ClientResponse) -> dict:
+    # sync get serialized JSON from original request.
+    # Usage: rm.req_json(rm.request("GET", "https://google.com"))
+    def req_json(self, request: aiohttp.ClientResponse) -> dict:
         return self._await(request.json())
 
 
     # for not daniel
-    async def async_request(self, method: str, url: str, **kwargs) -> str:
-        async with self.session.request(method, url, **kwargs) as req:
-            return await req.text()
+    # Literally same functionality as above except can be excecuted asynchronously.
+    async def async_request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
+        return await self.session.request(method, url, **kwargs)
