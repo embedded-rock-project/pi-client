@@ -33,16 +33,25 @@ def embeds_to_json(*embeds: Iterable[discord.Embed]) -> dict:
 
 # Build entire embed object in one-line (personal preference here)
 def build_embed(
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        color: Optional[Union[discord.Color, int]] = 000000,
-        url: Optional[str] = None,
-        image_url: Optional[str] = None,
-        thumbnail_url: Optional[str] = None,
-        author_info: Optional[tuple[Optional[str],
-                                    Optional[str], Optional[str]]] = None,
-        footer: Optional[tuple[str, str]] = None,
-        fields: Optional[list[tuple[str, str, Optional[bool]]]] = None,
+    title = None,
+    description = None,
+    color = 000000,
+    url = None,
+    image_url = None,
+    thumbnail_url = None,
+    author_info = None,
+    footer = None,
+    fields = None
+        # title: Optional[str] = None,
+        # description: Optional[str] = None,
+        # color: Optional[Union[discord.Color, int]] = 000000,
+        # url: Optional[str] = None,
+        # image_url: Optional[str] = None,
+        # thumbnail_url: Optional[str] = None,
+        # author_info: Optional[tuple[Optional[str],
+        #                             Optional[str], Optional[str]]] = None,
+        # footer: Optional[tuple[str, str]] = None,
+        # fields: Optional[list[tuple[str, str, Optional[bool]]]] = None,
 ) -> discord.Embed:
 
     # create embed object from Discord

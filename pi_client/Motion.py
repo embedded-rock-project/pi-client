@@ -9,7 +9,7 @@ from numbers import Number
 import RPi.GPIO as GPIO
 import time
 from asyncio import sleep
-from ..helper import BaseSensor
+from helper.base_sensor import BaseSensor
 
 
 #pin = 23
@@ -21,7 +21,7 @@ class MotionSensor(BaseSensor):
         super().__init__(mode, setup, pin)
         self.name = "motion sensor" #debug
         self.detecting_movement = False
-        self._await(self.check_if_enabled())
+        self._nowait(self.check_if_enabled())
 
 
 

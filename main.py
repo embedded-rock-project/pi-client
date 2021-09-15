@@ -8,8 +8,8 @@ import asyncio
 import RPi.GPIO as GPIO
 
 def main():
-    ps = PressureSensor(24, GPIO.BCM, GPIO.IN)
-    ms = MotionSensor(23, GPIO.BCM, GPIO.IN)
+    ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
+    ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
     with ps, ms:
         print(ps.name, ms.name)
 

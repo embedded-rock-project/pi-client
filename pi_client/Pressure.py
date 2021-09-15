@@ -7,7 +7,7 @@ However, I encapsulated it in order to keep things clean.
 from helper.base_sensor import BaseSensor
 import RPi.GPIO as GPIO
 import time
-from ..helper import BaseSensor
+from helper.base_sensor import BaseSensor
 from asyncio import sleep
 
 
@@ -39,7 +39,7 @@ class PressureSensor(BaseSensor):
     async def pressure_check(self):
         while self.enabled:
             input = GPIO.input(self.pin)
-            if (prev_input != input):
-                self.callback("hi there")
-            prev_input = input
+            if (self.prev_input != input):
+                await self.callback("hi there")
+            self.prev_input = input
             time.sleep(0.10)
