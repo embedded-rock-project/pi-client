@@ -27,6 +27,7 @@ class RequestMaker:
         except Exception as e:
             print(e)
 
+
     async def create_session(self, **kwargs) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(**kwargs)
 
@@ -39,13 +40,17 @@ class RequestMaker:
             return await req.text()
 
     # for daniel
-    def request(self, method: str, url: str, **kwargs):
+    def request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
         return self._await(self.session.request(method, url, **kwargs))
 
     def handle_request_text(self, request: aiohttp.ClientResponse) -> str:
         return self._await(request.text())
 
+    def handle_request_json(self, request: aiohttp.ClientResponse) -> dict:
+        return self._await(request.json())
+
+
     # for not daniel
-    async def async_request(self, method: str, url: str, **kwargs):
+    async def async_request(self, method: str, url: str, **kwargs) -> str:
         async with self.session.request(method, url, **kwargs) as req:
             return await req.text()
