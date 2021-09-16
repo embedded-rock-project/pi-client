@@ -26,7 +26,7 @@ class PressureSensor(BaseSensor):
 
     def __enter__(self):
         self.enabled = True
-        self.loop.run_in_executor(None, self.check_if_enabled)
+        self.event_task = self._sync_nowait(None, self.check_if_enabled)
 
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -48,10 +48,10 @@ class PressureSensor(BaseSensor):
             time.sleep(0.1)
 
 
-    async def pressure_check(self):
+    def pressure_check(self):
         while self.enabled:
             input = GPIO.input(self.pin)
             if (self.prev_input != input):
                 self.callback("There was pressure!")
             self.prev_input = input
-            await sleep(0.10)
+            time.sleep(0.10)

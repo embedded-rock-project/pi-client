@@ -11,6 +11,7 @@ class BaseSensor:
         self.loop = loop if loop else asyncio.get_event_loop()
         self._await = self.loop.run_until_complete
         self._nowait = self.loop.create_task
+        self._sync_nowait = self.loop.run_in_executor
         self.enabled = True
 
     def disable_sensor(self):

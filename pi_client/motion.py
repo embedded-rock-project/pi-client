@@ -26,7 +26,7 @@ class MotionSensor(BaseSensor):
 
     def __enter__(self):
         self.enabled = True
-        self.event_task = self.loop.run_in_executor(None, self.check_if_enabled)
+        self.event_task = self._sync_nowait(None, self.check_if_enabled)
 
     def __exit__(self, exc_type, exc_value, traceback):
         GPIO.cleanup()

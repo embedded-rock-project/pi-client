@@ -25,7 +25,7 @@ class Camera:
 
     def __enter__(self):
         self.enabled = True
-        self.event_task = self.loop.run_in_executor(None, self.camera_modes[self.camera_mode_choice])
+        self.event_task = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
 
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -112,9 +112,9 @@ class Camera:
 
 
     def check_if_enabled(self):
-        while not self.shutdown:
+        while True:
             if self.enabled and not bool(self.sensor_event):
-                self.sensor_event = self.loop.run_in_executor(None, self.camera_modes[self.camera_mode_choice])
+                self.sensor_event = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
             elif not self.enabled and bool(self.sensor_event):
                 self.sensor_event = None
             time.sleep(0.1)
