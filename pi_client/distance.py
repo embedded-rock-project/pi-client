@@ -1,11 +1,12 @@
 import RPi.GPIO as GPIO
 import time
 from http_reqs import defaultMaker
+import asyncio
 
 
 
 class DistanceSensor:
-    def __init__(self, mode, pin_trigger, pin_echo):
+    def __init__(self, mode, pin_trigger, pin_echo, loop = None):
         self.enabled = False
         self.event_task = None
         self.sensor_event = None
@@ -19,6 +20,9 @@ class DistanceSensor:
         GPIO.output(pin_trigger[0], GPIO.HIGH)
         time.sleep(0.00001)
         GPIO.output(pin_trigger[0], GPIO.LOW)
+        self.loop = loop if loop else asyncio.get_event_loop()
+        self._sync_nowait = self.loop.run_in_executor
+
 
 
     def __enter__(self):
