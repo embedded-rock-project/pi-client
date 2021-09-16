@@ -64,7 +64,7 @@ class Camera:
                 offset += 1
                 if offset > 10:
                     detect_faces = (len(faces) > 0)
-                    defaultMaker.discord_report(json={"content": "There was a pressure change!"})
+                    defaultMaker.discord_report(json={"content": f"There was a change of face! Face detected? {detect_faces}"})
                     offset = 0
             else:
                 offset = 0
