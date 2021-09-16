@@ -8,6 +8,7 @@ from http_reqs import RequestMaker, defaultMaker
 from helper.base_sensor import BaseSensor
 import RPi.GPIO as GPIO
 from asyncio import sleep
+import time
 
 
 # pin = 24
@@ -19,31 +20,32 @@ class PressureSensor(BaseSensor):
         super().__init__(mode, setup, pin)
         self.name = "pressure sensor" # debug
         self.prev_input = 0
+        self.event_task = None
         self.sensor_event = None
 
 
     def __enter__(self):
         self.enabled = True
-        self._await(self.check_if_enabled())
+        self.loop.run_in_executor(None, self.check_if_enabled)
 
 
-    def callback(self):
-        defaultMaker.discord_report(json={"content": "There was a pressure change!"})
+    def callback(self, message: str):
+        defaultMaker.discord_report(json={"content": message})
 
 
-    async def check_if_enabled(self):
+    def check_if_enabled(self):
         while True:
             if self.enabled and not bool(self.sensor_event):
                 self.sensor_event = self._nowait(self.pressure_check())  
             elif not self.enabled and bool(self.sensor_event):
                 self.sensor_event = None
-            await sleep(1)
+            time.sleep(1)
 
 
     async def pressure_check(self):
         while self.enabled:
             input = GPIO.input(self.pin)
             if (self.prev_input != input):
-                self.callback("hi there")
+                self.callback("There was pressure!")
             self.prev_input = input
             await sleep(0.10)
