@@ -7,12 +7,11 @@ import asyncio
 import time
 
 def main():
-    ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
-    ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
+   # ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
+   # ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
     ds = DistanceSensor(GPIO.BOARD, (7, GPIO.OUT), (11, GPIO.IN))
     cam = Camera(1)
-    with ps, ms, ds, cam:
-        print(ms.name)
+    with ds, cam:
         time.sleep(30)
 
 
