@@ -1,7 +1,9 @@
-from helper import *
-from pi_client import *
-from config import *
-from http_reqs import *
+# from helper import *
+# from pi_client import *
+# from config import *
+# from http_reqs import *
+
+from pi_client.camera import Camera
 
 import asyncio
 import time
@@ -9,9 +11,9 @@ import time
 def main():
    # ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
    # ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
-    ds = DistanceSensor(GPIO.BCM, (4, GPIO.OUT), (17, GPIO.IN))
-    #cam = Camera(1)
-    with ds: #, cam:
+   # ds = DistanceSensor(GPIO.BCM, (4, GPIO.OUT), (17, GPIO.IN))
+    cam = Camera(1)
+    with cam: #, cam:
         time.sleep(30)
 
 

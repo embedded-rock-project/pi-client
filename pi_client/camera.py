@@ -3,9 +3,13 @@
 import cv2
 import asyncio
 from typing import Optional
+
+from requests_toolbelt import MultipartEncoder
 from http_reqs import defaultMaker
+from io import BytesIO
+import json
 
-
+import requests
 
 class Camera:
     def __init__(self, camera_mode_choice: int, camera: int = 0, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
@@ -58,13 +62,17 @@ class Camera:
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = self.cv2Cascades.detectMultiScale(gray_frame, 1.3, 5)
             for (x, y, w, h) in faces:
-                frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
             cv2.imshow('face_detect', frame)
             if (len(faces) > 0) != detect_faces:
                 offset += 1
                 if offset > 10:
                     detect_faces = (len(faces) > 0)
-                    defaultMaker.discord_report(json={"content": f"There was a change of face! Face detected? {detect_faces}"})
+                    is_success, buffer = cv2.imencode(".png",frame)
+                    print()
+                    output_bytes = BytesIO(buffer)
+                    req_data = MultipartEncoder(fields={ "file": ("test.png", output_bytes, "image/png"), "payload_json": '{{"content":"{}","tts":false}}'.format("Person detected" if detect_faces else "Person left.").encode() })
+                    defaultMaker.discord_report(headers={"content-type": req_data.content_type}, data=req_data.to_string())
                     offset = 0
             else:
                 offset = 0

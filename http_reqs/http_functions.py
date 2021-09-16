@@ -12,6 +12,7 @@ import asyncio
 
 from typing import Any, Optional
 from config import server_base_url, discord_base_url
+print(discord_base_url)
 
 
 class RequestMaker:

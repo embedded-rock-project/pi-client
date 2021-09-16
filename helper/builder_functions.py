@@ -9,7 +9,10 @@ Low-level abstractions of Discord's Embed structure
 import discord
 import json
 from typing import Iterable, Optional, Union, Any
+from base64 import b64encode
 
+import random,string
+from requests_toolbelt import MultipartEncoder
 
 
 
@@ -94,6 +97,11 @@ def build_embed(
 
     # return constructed embed
     return emb
+
+
+
+def get_encoder_boundary(img_name, img_bytes, img_mimetype):
+    return '----WebKitFormBoundary' + ''.join(random.sample(string.ascii_letters + string.digits, 16))
 
 
 if __name__ == "__main__":
