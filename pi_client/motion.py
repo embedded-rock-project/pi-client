@@ -6,7 +6,7 @@ However, I encapsulated it in order to keep things clean.
 
 
 import RPi.GPIO as GPIO
-from http_reqs import RequestMaker
+from http_reqs import RequestMaker, defaultMaker
 from asyncio import sleep
 from helper.base_sensor import BaseSensor
 
@@ -22,9 +22,14 @@ class MotionSensor(BaseSensor):
         self.detecting_movement = False
         self._nowait(self.check_if_enabled())
 
-    def callback(self, rm: RequestMaker):
-        resp = rm.discord_report(json={"content": "There was movement!"})
-        print(rm.req_text(resp))
+
+    def __enter__(self):
+        self.enabled = True
+        self._await(None, self.check_if_enabled)
+
+
+    def callback(self):
+        defaultMaker.discord_report(json={"content": "There was movement!"})
 
     async def check_if_enabled(self):
         while True:
