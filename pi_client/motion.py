@@ -20,12 +20,11 @@ class MotionSensor(BaseSensor):
         super().__init__(mode, setup, pin)
         self.name = "motion sensor" #debug
         self.detecting_movement = False
-        self._nowait(self.check_if_enabled())
 
 
     def __enter__(self):
         self.enabled = True
-        self._await(self.check_if_enabled())
+        self._nowait(self.check_if_enabled())
 
 
     def callback(self):
