@@ -5,7 +5,7 @@ from http_reqs import defaultMaker
 
 
 class DistanceSensor:
-    def __init__(self, mode, pin_trigger: tuple[int, int], pin_echo: tuple[int, int]):
+    def __init__(self, mode, pin_trigger, pin_echo):
         self.enabled = False
         self.event_task = None
         self.sensor_event = None
