@@ -13,9 +13,6 @@ class BaseSensor:
         self._nowait = self.loop.create_task
         self.enabled = True
 
-    def __enter__(self):
-        pass
-
     def disable_sensor(self):
         self.enabled = False
 
