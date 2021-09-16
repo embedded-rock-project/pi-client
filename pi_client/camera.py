@@ -7,6 +7,7 @@ from typing import Optional
 from requests_toolbelt import MultipartEncoder
 from http_reqs import defaultMaker
 from io import BytesIO
+import time
 
 class Camera:
     def __init__(self, camera_mode_choice: int, camera: int = 0, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
@@ -27,7 +28,8 @@ class Camera:
 
     def __enter__(self):
         self.enabled = True
-        self.event_task = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
+        #self.check_if_enabled()
+        self.event_task = self._sync_nowait(None, self.check_if_enabled)
 
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -36,6 +38,13 @@ class Camera:
         self.event_task.cancel()
         self.vid.release()
         cv2.destroyAllWindows()
+
+
+    def enable_camera(self):
+        self.enabled = True
+
+    def disable_camera(self):
+        self.enabled = False
 
 
     # Displays edited video footage resembling security camera
@@ -100,17 +109,17 @@ class Camera:
                     detect_faces = (len(faces) > 0)
 
                     # encode raw bytes to png format
-                    is_success, buffer = cv2.imencode(".png",frame)
+                    #is_success, buffer = cv2.imencode(".png",frame)
 
                     # create bytesIO stream object to be sent as multipart form data
                     # this is an http requirement.
-                    output_bytes = BytesIO(buffer)
+                    #output_bytes = BytesIO(buffer)
 
                     # properly encode data to send to discord here.
-                    req_data = MultipartEncoder(fields={ "file": ("test.png", output_bytes, "image/png"), "payload_json": '{{"content":"{}","tts":false}}'.format("Person detected" if detect_faces else "Person left.").encode() })
+                    #req_data = MultipartEncoder(fields={ "file": ("test.png", output_bytes, "image/png"), "payload_json": '{{"content":"{}","tts":false}}'.format("Person detected" if detect_faces else "Person left.").encode() })
 
                     # report to webhook.
-                    defaultMaker.discord_report(headers={"content-type": req_data.content_type}, data=req_data.to_string())
+                    #defaultMaker.discord_report(headers={"content-type": req_data.content_type}, data=req_data.to_string())
 
                     # reset offset so checks can begin again.
                     offset = 0
@@ -182,24 +191,26 @@ class Camera:
 
             # display all four cameras.
             cv2.imshow("Camera", frame)
-            #cv2.imshow("Threshold", threshold)
-            #cv2.imshow("Subtraction", subtraction)
+            cv2.imshow("Threshold", threshold)
+            cv2.imshow("Subtraction", subtraction)
             cv2.imshow("Contour", contourimg)
 
             # set new background to compare to.
             background = gray
-            
+
             # check for break key. I want to remove this.
             if cv2.waitKey(1) & 0xFF == ord('s'):
                 break
 
 
     def check_if_enabled(self):
-        while True:
+        while not self.shutdown:
             if self.enabled and not bool(self.sensor_event):
                 self.sensor_event = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
             elif not self.enabled and bool(self.sensor_event):
+                self.sensor_event.cancel()
                 self.sensor_event = None
+
             time.sleep(0.1)
 
 

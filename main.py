@@ -14,7 +14,13 @@ def main():
    # ds = DistanceSensor(GPIO.BCM, (4, GPIO.OUT), (17, GPIO.IN))
     cam = Camera(2)
     with cam: #, cam:
+
         time.sleep(30)
+        # time.sleep(5)
+        # cam.disable_camera()
+        # time.sleep(5)
+        # cam.enable_camera()
+        # time.sleep(17)
 
 
 
