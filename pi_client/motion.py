@@ -39,4 +39,4 @@ class MotionSensor(BaseSensor):
             elif not self.enabled and self.detecting_movement:
                 GPIO.remove_event_detect(self.pin)
                 self.detect_movement = False
-            sleep(1)
+            await sleep(1)

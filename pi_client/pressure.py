@@ -37,7 +37,7 @@ class PressureSensor(BaseSensor):
                 self.sensor_event = self._nowait(self.pressure_check())  
             elif not self.enabled and bool(self.sensor_event):
                 self.sensor_event = None
-            sleep(1)
+            await sleep(1)
 
 
     async def pressure_check(self):
@@ -46,4 +46,4 @@ class PressureSensor(BaseSensor):
             if (self.prev_input != input):
                 await self.callback("hi there")
             self.prev_input = input
-            sleep(0.10)
+            await sleep(0.10)
