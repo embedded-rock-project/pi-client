@@ -8,6 +8,7 @@ from requests_toolbelt import MultipartEncoder
 from http_reqs import defaultMaker
 from io import BytesIO
 import time
+import traceback
 
 class Camera:
     def __init__(self, camera_mode_choice: int, camera: int = 0, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
@@ -18,7 +19,6 @@ class Camera:
         self.cv2Cascades = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
         self.camera_mode_choice = camera_mode_choice
         self.camera_modes = [self.standard_survelliance, self.facial_recognition, self.motion_blur]
-        self.event_task = None
         self.sensor_event = None
         self.loop = loop if loop else asyncio.get_event_loop()
         self._await = self.loop.run_until_complete
@@ -28,27 +28,40 @@ class Camera:
 
     def __enter__(self):
         self.enabled = True
-        #self.check_if_enabled()
-        self.event_task = self._sync_nowait(None, self.check_if_enabled)
+        self.sensor_event = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
 
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.enabled = False
+        self.disable_camera()
         self.shutdown = True
-        self.event_task.cancel()
-        self.vid.release()
-        cv2.destroyAllWindows()
 
 
     def enable_camera(self):
-        self.enabled = True
+        if not self.enabled:
+            self.enabled = True
+            self.vid = cv2.VideoCapture(self.camera)
+            if not bool(self.sensor_event):
+                self.sensor_event = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
 
     def disable_camera(self):
-        self.enabled = False
+        if self.enabled:
+            self.enabled = False
+            self.sensor_event.cancel()
+            self.sensor_event = None
+            self.vid.release()
+            cv2.destroyAllWindows()
+
+
+    def switch_camera_mode(self, choice: int):
+        self.camera_mode_choice = choice
+        self.disable_camera()
+        self.enable_camera()
 
 
     # Displays edited video footage resembling security camera
     def standard_survelliance(self):
+
+        #cv2.namedWindow("survelliance")
         print('Loading Camera Feed...')
         while self.enabled:
             # read frame off of video
@@ -61,21 +74,23 @@ class Camera:
             frame_gray_blur = cv2.GaussianBlur(frame_gray, (21,21),0)
 
             # display frame to screen
-            cv2.imshow('Cam Feed', frame_gray_blur)
+            cv2.imshow('survelliance', frame_gray_blur)
 
             # wait one millisecond, if break key occurs break from loop
-            # want to remove this, broke when I did -R
+            # want to remove             print(self.vid.isOpened())this, broke when I did -R
             if cv2.waitKey(1) == 27:
                 break  # esc to quit
+        #cv2.destroyWindow("survelliance")
 
 
 
 
     def facial_recognition(self):
-
+        print("Face recognition")
         # set variables outside of loop
         detect_faces = False
         offset = 0
+        #cv2.namedWindow("face_detect")
         while self.enabled:
 
             #read frame
@@ -109,15 +124,16 @@ class Camera:
                     detect_faces = (len(faces) > 0)
 
                     # encode raw bytes to png format
-                    #is_success, buffer = cv2.imencode(".png",frame)
+                    is_success, buffer = cv2.imencode(".png",frame)
 
                     # create bytesIO stream object to be sent as multipart form data
                     # this is an http requirement.
-                    #output_bytes = BytesIO(buffer)
+                    output_bytes = BytesIO(buffer)
 
                     # properly encode data to send to discord here.
-                    #req_data = MultipartEncoder(fields={ "file": ("test.png", output_bytes, "image/png"), "payload_json": '{{"content":"{}","tts":false}}'.format("Person detected" if detect_faces else "Person left.").encode() })
+                    req_data = MultipartEncoder(fields={ "file": ("test.png", output_bytes, "image/png"), "payload_json": '{{"content":"{}","tts":false}}'.format("Person detected" if detect_faces else "Person left.").encode() })
 
+                    print("Person detected" if detect_faces else "Person left.")
                     # report to webhook.
                     #defaultMaker.discord_report(headers={"content-type": req_data.content_type}, data=req_data.to_string())
 
@@ -131,23 +147,25 @@ class Camera:
             # I want to remove this.
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
-
+            #cv2.destroyWindow("face_detect")
 
     # this is more complicated and I can't explain this *that* well. -R
     # note: threshold seems to be doing almost nothing.
     def motion_blur(self):
-
+        print("Motion blur")
         # create variable outside of loop.
         background = None
+        detected_movement = False
+        offset = 0
+        #cv2.namedWindow("motion_tracking")
         while self.enabled:
-
-            # read frame from camera
+            # read frame from camerae recognition
             ret, frame = self.vid.read()
-
             # if fail, break
             if not ret:
                 break
 
+     
             # convert color scheme to grayscale for processing
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -177,9 +195,18 @@ class Camera:
 
             # remove outlines that are insiginificant (too small, possible false positives)
             notable_outlines = [c for c in outlines if cv2.contourArea(c) > 500]
+            if (len(notable_outlines) > 0) != detected_movement:
 
-            # debug length of lines, use to report movement
-            print(len(notable_outlines))
+                # if they don't match, add count of not matching.
+                offset += 1
+
+                # if ten in a row don't match, run this.
+                if offset > 5:
+                    detected_movement = (len(notable_outlines) > 0)
+                    print("There was movement!" if detected_movement else "everyone stopped moving.")
+                    offset = 0
+            else:
+                offset = 0
 
             # apply rectangles to image.
             for c in notable_outlines:
@@ -190,7 +217,7 @@ class Camera:
 
 
             # display all four cameras.
-            cv2.imshow("Camera", frame)
+            cv2.imshow("motion_tracking", frame)
             cv2.imshow("Threshold", threshold)
             cv2.imshow("Subtraction", subtraction)
             cv2.imshow("Contour", contourimg)
@@ -203,15 +230,17 @@ class Camera:
                 break
 
 
-    def check_if_enabled(self):
-        while not self.shutdown:
-            if self.enabled and not bool(self.sensor_event):
-                self.sensor_event = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
-            elif not self.enabled and bool(self.sensor_event):
-                self.sensor_event.cancel()
-                self.sensor_event = None
+        #cv2.destroyWindow("motion_tracking")
 
-            time.sleep(0.1)
+
+    # def check_if_enabled(self):
+    #     while not self.shutdown:
+    #         if self.enabled and not bool(self.sensor_event):
+    #             self.sensor_event = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
+    #         elif not self.enabled and bool(self.sensor_event):
+    #             self.sensor_event = None
+
+    #         time.sleep(0.1)
 
 
 if __name__ == "__main__":

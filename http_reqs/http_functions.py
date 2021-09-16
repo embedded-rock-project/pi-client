@@ -38,7 +38,8 @@ class RequestMaker:
             return await req.text()
 
     def discord_report(self, **kwargs) -> str:
-        return self.request("POST", discord_base_url, **kwargs)
+        #return self.request("POST", discord_base_url, **kwargs)
+        return self.request("POST", "https://httpbin.org/ip", **kwargs)
 
     # for daniel
     def request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:

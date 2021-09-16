@@ -12,10 +12,16 @@ def main():
    # ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
    # ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
    # ds = DistanceSensor(GPIO.BCM, (4, GPIO.OUT), (17, GPIO.IN))
-    cam = Camera(2)
+    cam = Camera(0)
     with cam: #, cam:
 
-        time.sleep(30)
+        time.sleep(5)
+        cam.switch_camera_mode(1)
+        time.sleep(5)
+        cam.switch_camera_mode(2)
+        time.sleep(5)
+        # cam.switch_camera_mode(0)
+        # time.sleep(5)
         # time.sleep(5)
         # cam.disable_camera()
         # time.sleep(5)
