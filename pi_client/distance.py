@@ -40,6 +40,7 @@ class DistanceSensor:
 
 
     def check_distance(self):
+        print("hello")
         GPIO.output(self.pin_trigger_int, GPIO.LOW)
         time.sleep(2)
         GPIO.output(self.pin_trigger_int, GPIO.HIGH)
