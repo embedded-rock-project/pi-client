@@ -41,7 +41,7 @@ class PressureSensor(BaseSensor):
     def check_if_enabled(self):
         while True:
             if self.enabled and not bool(self.sensor_event):
-                self.sensor_event = self._nowait(self.pressure_check())  
+                self.sensor_event = self._sync_nowait(self.pressure_check())  
             elif not self.enabled and bool(self.sensor_event):
                 self.sensor_event.cancel()
                 self.sensor_event = None
