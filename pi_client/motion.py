@@ -34,6 +34,7 @@ class MotionSensor(BaseSensor):
     async def check_if_enabled(self):
         while True:
             if self.enabled and not self.detecting_movement:
+                print("hi")
                 GPIO.add_event_detect(self.pin, GPIO.RISING, callback=self.callback)
                 self.detect_movement = True
             elif not self.enabled and self.detecting_movement:
