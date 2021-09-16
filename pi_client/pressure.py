@@ -29,6 +29,11 @@ class PressureSensor(BaseSensor):
         self.loop.run_in_executor(None, self.check_if_enabled)
 
 
+    def __exit__(self, exc_type, exc_value, traceback):
+        GPIO.cleanup()
+        self.event_task.cancel()
+
+
     def callback(self, message: str):
         defaultMaker.discord_report(json={"content": message})
 
@@ -38,8 +43,9 @@ class PressureSensor(BaseSensor):
             if self.enabled and not bool(self.sensor_event):
                 self.sensor_event = self._nowait(self.pressure_check())  
             elif not self.enabled and bool(self.sensor_event):
+                self.sensor_event.cancel()
                 self.sensor_event = None
-            time.sleep(1)
+            time.sleep(0.1)
 
 
     async def pressure_check(self):
