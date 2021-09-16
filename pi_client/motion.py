@@ -25,7 +25,7 @@ class MotionSensor(BaseSensor):
 
     def __enter__(self):
         self.enabled = True
-        self._await(None, self.check_if_enabled)
+        self._await(self.check_if_enabled())
 
 
     def callback(self):
