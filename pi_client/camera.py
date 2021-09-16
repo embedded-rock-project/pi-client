@@ -3,23 +3,6 @@
 import cv2
 import asyncio
 from typing import Optional
-  
-
-# vid = cv2.VideoCapture(0)
-# cv2Cascades = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-# def facial_recognition():
-#     while True:
-#         ret, frame = vid.read()
-#         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-#         faces = cv2Cascades.detectMultiScale(grayFrame, 1.3, 5) 
-#         print(faces)
-#         for (x, y, w, h) in faces:
-#             frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
-#         cv2.imshow('face_detect', frame)
-#         if cv2.waitKey(10) & 0xFF == ord('q'):
-#             break
-
-       
 
 
 
@@ -38,6 +21,7 @@ class Camera:
         self._await = self.loop.run_until_complete
         self._nowait = self.loop.create_task
 
+
     def __enter__(self):
         self.enabled = True
         self.event_task = self.loop.run_in_executor(None, self.camera_modes[self.camera_mode_choice])
@@ -51,7 +35,6 @@ class Camera:
         cv2.destroyAllWindows()
 
 
-
     def standard_survelliance(self):
         print('Loading Camera Feed...')
         while True:
@@ -61,6 +44,11 @@ class Camera:
             cv2.imshow('Cam Feed', frame_gray_blur)
             if cv2.waitKey(1) == 27:
                 break  # esc to quit
+
+
+    def callback(self, rm: RequestMaker):
+        resp = rm.discord_report(json={"content": "There was a pressure change!"})
+        print(rm.req_text(resp))
 
 
     def facial_recognition(self):
@@ -81,10 +69,8 @@ class Camera:
                     offset = 0
             else:
                 offset = 0
-
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
-
 
 
     def motion_blur(self):
@@ -102,7 +88,7 @@ class Camera:
                 continue
 
             subtraction = cv2.absdiff(background, gray)
-            retval, threshold = cv2.threshold(subtraction, 25, 255, cv2.THRESH_BINARY)
+            retval, threshold = cv2.threshold(subtraction, 255, 255, cv2.THRESH_BINARY)
             threshold = cv2.dilate(threshold, None, iterations = 2)
             contourimg = threshold.copy()
 
@@ -138,7 +124,7 @@ class Camera:
 
 if __name__ == "__main__":
     import time
-    cam = Camera(0)
+    cam = Camera(2)
     with cam:
         time.sleep(30)
  

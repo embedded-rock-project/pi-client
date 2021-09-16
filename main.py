@@ -5,13 +5,15 @@ from http_reqs import *
 
 
 import asyncio
-import RPi.GPIO as GPIO
+import time
 
 def main():
     ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
     ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
-    with ps, ms:
+    cam = Camera(1)
+    with ps, ms, cam:
         print(ps.name, ms.name)
+        time.sleep(30)
 
 
 if __name__ == "__main__":

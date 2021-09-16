@@ -22,7 +22,7 @@ class PressureSensor(BaseSensor):
         self.sensor_event = self._nowait(self.pressure_check())
 
 
-    async def callback(self, rm: RequestMaker):
+    def callback(self, rm: RequestMaker):
         resp = rm.discord_report(json={"content": "There was a pressure change!"})
         print(rm.req_text(resp))
 
