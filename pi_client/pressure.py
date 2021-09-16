@@ -44,6 +44,6 @@ class PressureSensor(BaseSensor):
         while self.enabled:
             input = GPIO.input(self.pin)
             if (self.prev_input != input):
-                await self.callback("hi there")
+                self.callback("hi there")
             self.prev_input = input
             await sleep(0.10)
