@@ -1,60 +1,96 @@
+
+# import the opencv library
 import cv2
-import numpy as np
-import time
-import pandas
-from datetime import datetime
+import asyncio
+from typing import Optional
+  
 
-class UseCamera:
-    def Surveillance(self):
+# vid = cv2.VideoCapture(0)
+# cv2Cascades = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+# def facial_recognition():
+#     while True:
+#         ret, frame = vid.read()
+#         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#         faces = cv2Cascades.detectMultiScale(grayFrame, 1.3, 5) 
+#         print(faces)
+#         for (x, y, w, h) in faces:
+#             frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
+#         cv2.imshow('face_detect', frame)
+#         if cv2.waitKey(10) & 0xFF == ord('q'):
+#             break
+
+       
+
+
+
+class Camera:
+    def __init__(self, camera_mode_choice: int, camera: int = 0, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+        self.shutdown = False
+        self.enabled = False
+        self.camera = camera
+        self.vid = cv2.VideoCapture(self.camera)
+        self.cv2Cascades = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        self.camera_mode_choice = camera_mode_choice
+        self.camera_modes = [self.standard_survelliance, self.facial_recognition, self.motion_blur]
+        self.event_task = None
+        self.sensor_event = None
+        self.loop = loop if loop else asyncio.get_event_loop()
+        self._await = self.loop.run_until_complete
+        self._nowait = self.loop.create_task
+
+    def __enter__(self):
+        self.enabled = True
+        self.event_task = self.loop.run_in_executor(None, self.camera_modes[self.camera_mode_choice])
+
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.enabled = False
+        self.shutdown = True
+        self.event_task.cancel()
+        self.vid.release()
+        cv2.destroyAllWindows()
+
+
+
+    def standard_survelliance(self):
         print('Loading Camera Feed...')
-        cam = cv2.VideoCapture(0)#, cv2.CAP_DSHOW)
-        firstFrame=cam.read()
-        cv2.imshow("frame", firstFrame)
-        firstFrameGray =cv2.cvtColor(firstFrame, cv2.COLOR_BGR2GRAY)
-        firstFrameGrayBlur = cv2.GaussianBlur(firstFrameGray, (21,21),0)
         while True:
-            Frame = cam.read() #[1]
-            FrameGray=cv2.cvtColor(Frame, cv2.COLOR_BGR2GRAY)
-            FrameGrayBlur= cv2.GaussianBlur(FrameGray, (21,21),0)
-
-            cv2.imshow('Cam Feed', FrameGrayBlur)
+            ret, frame = self.vid.read()
+            frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            frame_gray_blur = cv2.GaussianBlur(frame_gray, (21,21),0)
+            cv2.imshow('Cam Feed', frame_gray_blur)
             if cv2.waitKey(1) == 27:
                 break  # esc to quit
-        cv2.destroyAllWindows()
-        cam.release()
 
-    def ShowFeed(self):
-        cap = cv2.VideoCapture(0)
-        cap.set(3, 640)
-        cap.set(4, 420)
 
-        # import cascade file for facial recognition
-        faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-
-        while True:
-            success, img = cap.read()
-            imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-            # Getting corners around the face
-            faces = faceCascade.detectMultiScale(imgGray, 1.3, 5)  # 1.3 = scale factor, 5 = minimum neighbor
-            # drawing bounding box around face
+    def facial_recognition(self):
+        detect_faces = False
+        offset = 0
+        while self.enabled:
+            ret, frame = self.vid.read()
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = self.cv2Cascades.detectMultiScale(gray_frame, 1.3, 5)
             for (x, y, w, h) in faces:
-                img = cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 3)
+                frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
+            cv2.imshow('face_detect', frame)
+            if (len(faces) > 0) != detect_faces:
+                offset += 1
+                if offset > 10:
+                    detect_faces = (len(faces) > 0)
+                    print(f"detected change of face! Face? {detect_faces}")
+                    offset = 0
+            else:
+                offset = 0
 
-            cv2.imshow('face_detect', img)
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
-        cap.release()
-        cv2.destroyWindow('face_detect')
 
-    def MotionBlur(self):
-        camera = cv2.VideoCapture(0)
 
+
+    def motion_blur(self):
         background = None
-
-        while True:
-            grabbed, frame = camera.read()
-
+        while self.enabled:
+            grabbed, frame = self.vid.read()
             if not grabbed:
                 break
 
@@ -66,7 +102,7 @@ class UseCamera:
                 continue
 
             subtraction = cv2.absdiff(background, gray)
-            threshold = cv2.threshold(subtraction, 25, 255, cv2.THRESH_BINARY)[1]
+            retval, threshold = cv2.threshold(subtraction, 25, 255, cv2.THRESH_BINARY)
             threshold = cv2.dilate(threshold, None, iterations = 2)
             contourimg = threshold.copy()
 
@@ -90,51 +126,20 @@ class UseCamera:
             if key == ord('s'):
                 break
 
-        camera.release()
-        cv2.destroyAllWindows()
+
+    def check_if_enabled(self):
+        while not self.shutdown:
+            if self.enabled and not bool(self.sensor_event):
+                self.sensor_event = self.loop.run_in_executor(None, self.camera_modes[self.camera_mode_choice])
+            elif not self.enabled and bool(self.sensor_event):
+                self.sensor_event = None
+            time.sleep(0.1)
+
 
 if __name__ == "__main__":
-    UseCamera().Surveillance()
-
-
-
-# import cv2
-
-# class Camera:
-#     def __init__(self):
-#         self.FirstFrameGray = None
-#         self.FirstFrame = None
-#         self.Frame = None
-#         self.Cam = None
-
-        
-#     def Surveillance(self):
-#         print('Loading Camera Feed...')
-#         self.Cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-#         self.FirstFrame=self.Cam.read()[1]
-#         #self.FirstFrameGray =cv2.cvtColor(self.FirstFrame, cv2.COLOR_BGR2GRAY)
-#         self.FirstFrameGrayBlur = cv2.GaussianBlur(self.FirstFrameGray, (21,21),0)
-#         while True:
-#             self.Frame = self.Cam.read()[1]
-#             #self.FrameGray=cv2.cvtColor(self.Frame, cv2.COLOR_BGR2GRAY)
-#             self.FrameGrayBlur= cv2.GaussianBlur(self.FrameGray, (21,21),0)
-            
-#             cv2.imshow('Cam Feed', self.FrameGrayBlur)
-#             if cv2.waitKey(1) == 27: 
-#                 break  # esc to quit
-#         cv2.destroyAllWindows()
-#         self.Cam.release()
-#     def ShowFeed(self):
-#         self.Cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-#         while True:
-#             self.Frame = self.Cam.read()[1]
-#             cv2.imshow('Cam Feed', self.Frame)
-#             if cv2.waitKey(1) == 27: 
-#                 break  # esc to quit
-#         cv2.destroyAllWindows()
-#         self.Cam.release()
-
-
-# if(__name__=='__main__'):
-#     Camera().Surveillance()
-
+    import time
+    cam = Camera(0)
+    with cam:
+        time.sleep(30)
+ 
+    print("bye")
