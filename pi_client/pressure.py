@@ -4,6 +4,7 @@ Varun helped me understand the pin configuration and wrote the original design
 However, I encapsulated it in order to keep things clean.
 """
 
+from http_reqs import RequestMaker
 from helper.base_sensor import BaseSensor
 import RPi.GPIO as GPIO
 from asyncio import sleep
@@ -21,8 +22,9 @@ class PressureSensor(BaseSensor):
         self.sensor_event = self._nowait(self.pressure_check())
 
 
-    async def callback(self, message):
-        print(message)
+    async def callback(self, rm: RequestMaker):
+        resp = rm.discord_report(json={"content": "There was a pressure change!"})
+        print(rm.req_text(resp))
 
 
     async def check_if_enabled(self):

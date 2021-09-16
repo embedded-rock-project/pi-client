@@ -98,7 +98,7 @@ def build_embed(
 
 if __name__ == "__main__":
     from pprint import pprint
-    emb = build_embed(title="hi", description="bye", color=0xFFFFFF, fields=[("hi", "hi"), ("hi", "hi")])
+    emb = build_embed(title="hi", description="bye", color=0xFFFFFF,  fields=[("hi", "hi"), ("hi", "hi")])
     emb2 = build_embed("hi", fields=(("hi", "hi")))
     emb_json = embeds_to_json(emb, emb2)
     import requests

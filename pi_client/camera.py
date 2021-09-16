@@ -7,12 +7,13 @@ from datetime import datetime
 class UseCamera:
     def Surveillance(self):
         print('Loading Camera Feed...')
-        Cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-        FirstFrame=Cam.read()[1]
-        FirstFrameGray =cv2.cvtColor(FirstFrame, cv2.COLOR_BGR2GRAY)
-        FirstFrameGrayBlur = cv2.GaussianBlur(FirstFrameGray, (21,21),0)
+        cam = cv2.VideoCapture(0)#, cv2.CAP_DSHOW)
+        firstFrame=cam.read()
+        cv2.imshow("frame", firstFrame)
+        firstFrameGray =cv2.cvtColor(firstFrame, cv2.COLOR_BGR2GRAY)
+        firstFrameGrayBlur = cv2.GaussianBlur(firstFrameGray, (21,21),0)
         while True:
-            Frame = Cam.read()[1]
+            Frame = cam.read() #[1]
             FrameGray=cv2.cvtColor(Frame, cv2.COLOR_BGR2GRAY)
             FrameGrayBlur= cv2.GaussianBlur(FrameGray, (21,21),0)
 
@@ -20,7 +21,7 @@ class UseCamera:
             if cv2.waitKey(1) == 27:
                 break  # esc to quit
         cv2.destroyAllWindows()
-        Cam.release()
+        cam.release()
 
     def ShowFeed(self):
         cap = cv2.VideoCapture(0)
