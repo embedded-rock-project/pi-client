@@ -16,12 +16,6 @@ def main():
         time.sleep(30)
 
 
-    # ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
-    # ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
-    cam = Camera(1)
-    with cam:
-        time.sleep(30)
-
 
 if __name__ == "__main__":
     main()
