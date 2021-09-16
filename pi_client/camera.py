@@ -3,6 +3,7 @@
 import cv2
 import asyncio
 from typing import Optional
+from http_reqs import defaultMaker
 
 
 
@@ -46,9 +47,6 @@ class Camera:
                 break  # esc to quit
 
 
-    def callback(self, rm: RequestMaker):
-        resp = rm.discord_report(json={"content": "There was a pressure change!"})
-        print(rm.req_text(resp))
 
 
     def facial_recognition(self):
@@ -65,7 +63,7 @@ class Camera:
                 offset += 1
                 if offset > 10:
                     detect_faces = (len(faces) > 0)
-                    print(f"detected change of face! Face? {detect_faces}")
+                    defaultMaker.discord_report(json={"content": "There was a pressure change!"})
                     offset = 0
             else:
                 offset = 0
