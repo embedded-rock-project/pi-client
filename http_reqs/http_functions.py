@@ -22,8 +22,11 @@ class RequestMaker:
         self.session = self._await(self.create_session())
 
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._await(self.session.close())
+    def __del__(self):
+        try:
+            self._await(self.session.close())
+        except Exception:
+            pass
 
 
     async def create_session(self, **kwargs) -> aiohttp.ClientSession:
