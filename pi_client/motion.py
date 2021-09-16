@@ -21,14 +21,20 @@ class MotionSensor(BaseSensor):
         super().__init__(mode, setup, pin)
         self.name = "motion sensor" #debug
         self.detecting_movement = False
+        self.event_task = None
 
 
     def __enter__(self):
         self.enabled = True
-        self.check_if_enabled()
+        self.event_task = self.loop.run_in_executor(None, self.check_if_enabled)
+
+    def __exit__(self):
+        GPIO.cleanup()
+        self.event_task.cancel()
 
 
     def callback(self):
+        print("hello")
         defaultMaker.discord_report(json={"content": "There was movement!"})
 
     def check_if_enabled(self):
