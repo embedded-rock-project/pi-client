@@ -33,8 +33,8 @@ class MotionSensor(BaseSensor):
         self.event_task.cancel()
 
 
-    def callback(self):
-        print("hello")
+    def callback(self, channel):
+        print(channel)
         defaultMaker.discord_report(json={"content": "There was movement!"})
 
     def check_if_enabled(self):
