@@ -6,6 +6,7 @@ Aiohttp session setup for asyncronhous requests.
 """
 
 
+from urllib.request import Request
 import aiohttp
 import asyncio
 
@@ -54,3 +55,6 @@ class RequestMaker:
     # Literally same functionality as above except can be excecuted asynchronously.
     async def async_request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
         return await self.session.request(method, url, **kwargs)
+
+
+defaultMaker = RequestMaker()
