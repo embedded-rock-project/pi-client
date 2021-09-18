@@ -9,12 +9,6 @@ Low-level abstractions of Discord's Embed structure
 import discord
 import json
 from typing import Iterable, Optional, Union, Any
-from base64 import b64encode
-
-import random,string
-from requests_toolbelt import MultipartEncoder
-
-
 
 # Convert str to discord.Color
 def str_to_discord_color(h: str) -> discord.Color:
@@ -24,11 +18,10 @@ def str_to_discord_color(h: str) -> discord.Color:
 # Convert discord.Embed object to request-ready json-serializable object.
 def embeds_to_json(*embeds: Iterable[discord.Embed]) -> dict:
     assert type(embeds) == tuple, \
-        f"This function requires an unpacked list of embeds. I.E. \"embeds_to_json(emb, emb1)\""
+        f'This function requires an unpacked list of embeds. I.E. "embeds_to_json(emb, emb1)"'
 
     # If you need an explanation on this, let me know -R
-    results = map(lambda emb: json.loads(json.dumps(
-        emb.to_dict()).replace('"None"', 'null')), embeds)
+    results = map(lambda emb: json.loads(json.dumps(emb.to_dict()).replace('"None"', 'null')), embeds)
 
     # convert map object to generated list
     return list(results)
@@ -98,10 +91,6 @@ def build_embed(
     # return constructed embed
     return emb
 
-
-
-def get_encoder_boundary(img_name, img_bytes, img_mimetype):
-    return '----WebKitFormBoundary' + ''.join(random.sample(string.ascii_letters + string.digits, 16))
 
 
 if __name__ == "__main__":

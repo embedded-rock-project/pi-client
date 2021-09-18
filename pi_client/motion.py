@@ -19,29 +19,19 @@ import time
 class MotionSensor(BaseSensor):
     def __init__(self, mode, setup, pin: int):
         super().__init__(mode, setup, pin)
-        self.name = "motion sensor" #debug
-        self.detecting_movement = False
-        self.event_task = None
-
 
     def __enter__(self):
-        self.enabled = True
-        self.event_task = self._sync_nowait(None, self.check_if_enabled)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        GPIO.cleanup()
-        self.event_task.cancel()
-
+        self.enable_sensor()
 
     def callback(self, sensor_pin: int):
-        defaultMaker.discord_report(json={"content": "There was movement!"})
+        defaultMaker.discord_report(json={"content": "Motion sensor detected movement!"})
 
-    def check_if_enabled(self):
-        while True:
-            if self.enabled and not self.detecting_movement:
-                GPIO.add_event_detect(self.pin, GPIO.RISING, callback=self.callback)
-                self.detect_movement = True
-            elif not self.enabled and self.detecting_movement:
-                GPIO.remove_event_detect(self.pin)
-                self.detect_movement = False
-            time.sleep(0.1)
+    def enable_sensor(self):
+        if (not self.enabled):
+            self.enabled = True
+            GPIO.add_event_detect(self.pin, GPIO.RISING, callback=self.callback)
+
+    def disable_sensor(self):
+        if (self.enabled):
+            self.enabled = False
+            GPIO.remove_event_detect(self.pin)

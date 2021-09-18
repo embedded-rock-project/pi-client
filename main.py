@@ -3,7 +3,7 @@
 # from config import *
 # from http_reqs import *
 
-from pi_client.camera import Camera
+from pi_client import Camera
 
 import asyncio
 import time
@@ -12,57 +12,15 @@ def main():
    # ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
    # ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
    # ds = DistanceSensor(GPIO.BCM, (4, GPIO.OUT), (17, GPIO.IN))
-    cam = Camera(0)
+    cam = Camera(2)
     with cam: #, cam:
-
-        time.sleep(5)
-        cam.switch_camera_mode(1)
-        time.sleep(5)
-        cam.switch_camera_mode(2)
-        time.sleep(5)
+        time.sleep(120)
+        # cam.switch_camera_mode(2)
+        # time.sleep(120)
         # cam.switch_camera_mode(0)
-        # time.sleep(5)
-        # time.sleep(5)
-        # cam.disable_camera()
-        # time.sleep(5)
-        # cam.enable_camera()
-        # time.sleep(17)
+        # time.sleep(1200)
 
 
 
-if __name__ == "__main__":
+if (__name__ == "__main__"):
     main()
-
-
-
-
-
-
-# """
-# Client side interactions with sensors and server.
-# All interactions must be handled inside the code itself, 
-# then data is handed off to a server to process.
-# """
-
-
-# import asyncio
-# import helper
-# from inherits import RequestMaker
-
-
-
-
-
-# def main():
-#     rm = RequestMaker()
-#     emb = helper.build_embed("hi", fields=(("hi", "hi", False)))
-#     emb_json = helper.embeds_to_json(emb)
-#     resp = rm.handle_request_text(rm.request("POST", "https://httpbin.org/anything", json={"content": None, "embeds": emb_json}))
-#     print(emb_json)
-#     print(resp)
-#     return
-
-
-
-# if __name__ == "__main__":
-#     main()

@@ -11,14 +11,21 @@ class BaseSensor:
         self.loop = loop if loop else asyncio.get_event_loop()
         self._await = self.loop.run_until_complete
         self._nowait = self.loop.create_task
-        self._sync_nowait = self.loop.run_in_executor
         self.enabled = True
+        self.sensor_event = None
 
     def disable_sensor(self):
-        self.enabled = False
+        if (self.enabled):
+            self.enabled = False
+            if (self.sensor_event):
+                self.sensor_event.cancel()
 
     def enable_sensor(self):
-        self.enabled = True
+        if (not self.enabled):
+            self.enabled = True
+
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.disable_sensor()
         GPIO.cleanup()
+

@@ -12,7 +12,6 @@ import asyncio
 
 from typing import Any, Optional
 from config import server_base_url, discord_base_url
-print(discord_base_url)
 
 
 class RequestMaker:
@@ -38,8 +37,8 @@ class RequestMaker:
             return await req.text()
 
     def discord_report(self, **kwargs) -> str:
-        #return self.request("POST", discord_base_url, **kwargs)
-        return self.request("POST", "https://httpbin.org/ip", **kwargs)
+        return self.request("POST", discord_base_url, **kwargs)
+        #return self.request("POST", "https://httpbin.org/ip", **kwargs)
 
     # for daniel
     def request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:

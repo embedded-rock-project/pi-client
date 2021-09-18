@@ -1,47 +1,37 @@
 
-# import the opencv library
 import cv2
 import asyncio
 from typing import Optional
-
 from requests_toolbelt import MultipartEncoder
-from http_reqs import defaultMaker
 from io import BytesIO
 import time
-import traceback
+
+from http_reqs import defaultMaker
+
 
 class Camera:
     def __init__(self, camera_mode_choice: int, camera: int = 0, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
-        self.shutdown = False
         self.enabled = False
-        self.camera = camera
-        self.vid = cv2.VideoCapture(self.camera)
-        self.cv2Cascades = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-        self.camera_mode_choice = camera_mode_choice
-        self.camera_modes = [self.standard_survelliance, self.facial_recognition, self.motion_blur]
         self.sensor_event = None
+        self.vid = None
+        self.camera = camera
+        self.camera_mode_choice = camera_mode_choice
         self.loop = loop if loop else asyncio.get_event_loop()
-        self._await = self.loop.run_until_complete
-        self._nowait = self.loop.create_task
-        self._sync_nowait = self.loop.run_in_executor
-
+        self.cv2Cascades = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        self.camera_modes = [self.standard_survelliance, self.facial_recognition, self.motion_blur_clean]
 
     def __enter__(self):
-        self.enabled = True
-        self.sensor_event = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
-
+        self.enable_camera()
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.disable_camera()
-        self.shutdown = True
-
 
     def enable_camera(self):
         if not self.enabled:
             self.enabled = True
             self.vid = cv2.VideoCapture(self.camera)
             if not bool(self.sensor_event):
-                self.sensor_event = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
+                self.sensor_event = self.loop.run_in_executor(None, self.camera_modes[self.camera_mode_choice])
 
     def disable_camera(self):
         if self.enabled:
@@ -51,19 +41,36 @@ class Camera:
             self.vid.release()
             cv2.destroyAllWindows()
 
-
     def switch_camera_mode(self, choice: int):
-        self.camera_mode_choice = choice
-        self.disable_camera()
-        self.enable_camera()
+        if choice != self.camera_mode_choice:
+            self.camera_mode_choice = choice
+            self.disable_camera()
+            self.enable_camera()
 
+    def _report_to_discord(self, frame, message):
+        # encode raw bytes to png format
+        is_success, buffer = cv2.imencode(".png", frame)
 
-    # Displays edited video footage resembling security camera
+        # create bytesIO stream object to be sent as multipart form data
+        # this is an http requirement.
+        output_bytes = BytesIO(buffer)
+
+        # properly encode data to send to discord here.
+        req_data = MultipartEncoder(
+            fields={
+                "file": ("test.png", output_bytes, "image/png"),
+                "payload_json": '{{"content":"{}","tts":false}}'.format(message).encode()
+                }
+            )
+
+        print(message)
+        # report to webhook.
+        #defaultMaker.discord_report(headers={"content-type": req_data.content_type}, data=req_data.to_string())
+
     def standard_survelliance(self):
-
-        #cv2.namedWindow("survelliance")
         print('Loading Camera Feed...')
         while self.enabled:
+
             # read frame off of video
             ret, frame = self.vid.read()
 
@@ -71,29 +78,27 @@ class Camera:
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
             # apply a gaussian blur to mimic old-time camera effect
-            frame_gray_blur = cv2.GaussianBlur(frame_gray, (21,21),0)
+            frame_gray_blur = cv2.GaussianBlur(frame_gray, (21, 21), 0)
 
             # display frame to screen
             cv2.imshow('survelliance', frame_gray_blur)
 
             # wait one millisecond, if break key occurs break from loop
-            # want to remove             print(self.vid.isOpened())this, broke when I did -R
+            # want to remove
             if cv2.waitKey(1) == 27:
                 break  # esc to quit
-        #cv2.destroyWindow("survelliance")
-
-
+        # cv2.destroyWindow("survelliance")
 
 
     def facial_recognition(self):
         print("Face recognition")
+
         # set variables outside of loop
         detect_faces = False
         offset = 0
-        #cv2.namedWindow("face_detect")
         while self.enabled:
 
-            #read frame
+            # read frame
             ret, frame = self.vid.read()
 
             # convert to grayscale to be used for image detection
@@ -123,23 +128,13 @@ class Camera:
                     # change detect_faces to current bool of if face is detected
                     detect_faces = (len(faces) > 0)
 
-                    # encode raw bytes to png format
-                    is_success, buffer = cv2.imencode(".png",frame)
-
-                    # create bytesIO stream object to be sent as multipart form data
-                    # this is an http requirement.
-                    output_bytes = BytesIO(buffer)
-
-                    # properly encode data to send to discord here.
-                    req_data = MultipartEncoder(fields={ "file": ("test.png", output_bytes, "image/png"), "payload_json": '{{"content":"{}","tts":false}}'.format("Person detected" if detect_faces else "Person left.").encode() })
-
-                    print("Person detected" if detect_faces else "Person left.")
-                    # report to webhook.
-                    #defaultMaker.discord_report(headers={"content-type": req_data.content_type}, data=req_data.to_string())
+                    # report to Discord right now.
+                    self._report_to_discord(
+                        frame, "Face detected!" if detect_faces else "Face has left.")
 
                     # reset offset so checks can begin again.
                     offset = 0
-                
+
             # if current mode DOES match, reset offset.
             else:
                 offset = 0
@@ -147,104 +142,120 @@ class Camera:
             # I want to remove this.
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
-            #cv2.destroyWindow("face_detect")
 
-    # this is more complicated and I can't explain this *that* well. -R
-    # note: threshold seems to be doing almost nothing.
     def motion_blur(self):
         print("Motion blur")
+
         # create variable outside of loop.
         background = None
         detected_movement = False
         offset = 0
-        #cv2.namedWindow("motion_tracking")
-        while self.enabled:
-            # read frame from camerae recognition
-            ret, frame = self.vid.read()
-            # if fail, break
-            if not ret:
-                break
+        try:
+            while self.enabled:
 
-     
-            # convert color scheme to grayscale for processing
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                # read frame from camera
+                ret, frame = self.vid.read()
 
-            # apply gaussian blur for some reason
-            gray = cv2.GaussianBlur(gray, (21,21), 0)
+                # convert color scheme to grayscale for processing
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-            # this is ran once: gets first frame as reference. Otherwise skips.
-            if background is None:
-                background = gray
-                continue
+                # apply gaussian blur to display motion blur to detection process.
+                gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
-            # accquire differences in pixels between current frame and background
-            # returns pixels that demonstrate that difference
-            subtraction = cv2.absdiff(background, gray)
+                # this is ran once: gets first frame as reference. Otherwise skips.
+                if background is None:
+                    background = gray
+                    continue
 
-            # pick out pixels that differ above a certain threshhold.
-            retval, threshold = cv2.threshold(subtraction, 25, 255, cv2.THRESH_BINARY)
+                # accquire differences in pixels between current frame and background
+                # returns pixels that demonstrate that difference
+                subtraction = cv2.absdiff(background, gray)
 
-            # increase size of image
-            threshold = cv2.dilate(threshold, None, iterations = 2)
+                # pick out pixels that differ above a certain threshhold.
+                retval, threshold = cv2.threshold(
+                    subtraction, 25, 255, cv2.THRESH_BINARY)
 
-            # create copy of new threshold to continue processing, save original for display
-            contourimg = threshold.copy()
+                # increase size of image
+                threshold = cv2.dilate(threshold, None, iterations=2)
 
-            # find contour of currently differing objects.
-            outlines, heirarchy = cv2.findContours(contourimg, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                # create copy of new threshold to continue processing, save original for display
+                contourimg = threshold.copy()
 
-            # remove outlines that are insiginificant (too small, possible false positives)
-            notable_outlines = [c for c in outlines if cv2.contourArea(c) > 500]
-            if (len(notable_outlines) > 0) != detected_movement:
+                # find contour of currently differing objects.
+                outlines, heirarchy = cv2.findContours(
+                    contourimg, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-                # if they don't match, add count of not matching.
-                offset += 1
+                # remove outlines that are insiginificant (too small, possible false positives)
+                notable_outlines = list(
+                    filter(lambda c: cv2.contourArea(c) > 500, outlines))
 
-                # if ten in a row don't match, run this.
-                if offset > 5:
-                    detected_movement = (len(notable_outlines) > 0)
-                    print("There was movement!" if detected_movement else "everyone stopped moving.")
+                if (len(notable_outlines) > 0) != detected_movement:
+
+                    # if they don't match, add count of not matching.
+                    offset += 1
+
+                    # if ten in a row don't match, run this.
+                    if offset > 5:
+                        detected_movement = (len(notable_outlines) > 0)
+                        if detected_movement:
+                            print("Camera detected movement!")
+                        offset = 0
+                else:
                     offset = 0
-            else:
-                offset = 0
 
-            # apply rectangles to image.
-            for c in notable_outlines:
-                
-                # get rectangle coordinates
-                (x,y,w,h) = cv2.boundingRect(c)
-                cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0), 2)
+                # apply rectangles to image.
+                for c in notable_outlines:
 
+                    # get rectangle coordinates
+                    (x, y, w, h) = cv2.boundingRect(c)
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-            # display all four cameras.
-            cv2.imshow("motion_tracking", frame)
-            cv2.imshow("Threshold", threshold)
-            cv2.imshow("Subtraction", subtraction)
-            cv2.imshow("Contour", contourimg)
+                # display all four cameras.
+                cv2.imshow("Threshold", threshold)
+                cv2.imshow("Subtraction", subtraction)
+                cv2.imshow("Contour", contourimg)
+                cv2.imshow("motion_tracking", frame)
 
-            # set new background to compare to.
-            background = gray
+                # set new background to compare to.
+                background = gray
 
-            # check for break key. I want to remove this.
-            if cv2.waitKey(1) & 0xFF == ord('s'):
-                break
-
-
-        #cv2.destroyWindow("motion_tracking")
+                # check for break key. I want to remove this.
+                if cv2.waitKey(1) & 0xFF == ord('s'):
+                    break
+        except Exception as e:
+            print(e)
 
 
-    # def check_if_enabled(self):
-    #     while not self.shutdown:
-    #         if self.enabled and not bool(self.sensor_event):
-    #             self.sensor_event = self._sync_nowait(None, self.camera_modes[self.camera_mode_choice])
-    #         elif not self.enabled and bool(self.sensor_event):
-    #             self.sensor_event = None
 
-    #         time.sleep(0.1)
-
-
-if __name__ == "__main__":
-    import time
-    cam = Camera(2)
-    with cam:
-        time.sleep(30)
+    def motion_blur_clean(self):
+            background = None
+            detected_movement = False
+            offset = 0
+            while self.enabled:
+                ret, frame = self.vid.read()
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                gray = cv2.GaussianBlur(gray, (21, 21), 0)
+                if background is None:
+                    background = gray
+                    continue
+                subtraction = cv2.absdiff(background, gray)
+                retval, threshold = cv2.threshold(subtraction, 20, 255, cv2.THRESH_BINARY)
+                outlines, heirarchy = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                notable_outlines = list(filter(lambda c: cv2.contourArea(c) > 500, outlines))
+                if (len(notable_outlines) > 0) != detected_movement:
+                    offset += 1
+                    if offset > 5:
+                        detected_movement = (len(notable_outlines) > 0)
+                        if detected_movement:
+                            print("there was movement!")
+                        offset = 0
+                else:
+                    offset = 0
+                for c in notable_outlines:
+                    (x, y, w, h) = cv2.boundingRect(c)
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                cv2.imshow("subtraction", subtraction)  
+                cv2.imshow("motion_tracking", frame)
+                background = gray
+                if cv2.waitKey(1) & 0xFF == ord('s'):
+                    break

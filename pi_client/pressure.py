@@ -18,40 +18,29 @@ import time
 class PressureSensor(BaseSensor):
     def __init__(self, mode, setup, pin: int):
         super().__init__(mode, setup, pin)
-        self.name = "pressure sensor" # debug
-        self.prev_input = 0
-        self.event_task = None
-        self.sensor_event = None
-
+        self.last_input = 0
 
     def __enter__(self):
         self.enabled = True
-        self.event_task = self._sync_nowait(None, self.check_if_enabled)
+        self.sensor_event = self.loop.run_in_executor(None, self.pressure_check)
 
+    def enable_sensor(self):
+        if not self.enabled:
+            self.enabled = True
+            self.sensor_event = self.loop.run_in_executor(None, self.pressure_check)
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        GPIO.cleanup()
-        self.event_task.cancel()
-
+    def disable_sensor(self):
+        if self.enabled:
+            self.enabled = False
+            self.sensor_event.cancel()
 
     def callback(self, message: str):
         defaultMaker.discord_report(json={"content": message})
 
-
-    def check_if_enabled(self):
-        while True:
-            if self.enabled and not bool(self.sensor_event):
-                self.sensor_event = self._sync_nowait(self.pressure_check())  
-            elif not self.enabled and bool(self.sensor_event):
-                self.sensor_event.cancel()
-                self.sensor_event = None
-            time.sleep(0.1)
-
-
     def pressure_check(self):
         while self.enabled:
             input = GPIO.input(self.pin)
-            if (self.prev_input != input):
-                self.callback("There was pressure!")
-            self.prev_input = input
-            time.sleep(0.10)
+            if (self.last_input != input):
+                self.callback("Pressure sensor detected pressure!")
+            self.last_input = input
+            time.sleep(0.1)
