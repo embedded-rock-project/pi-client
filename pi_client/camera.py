@@ -39,8 +39,9 @@ class Camera:
     def disable_camera(self):
         if self.enabled:
             self.enabled = False
-            self.sensor_event.cancel()
-            self.sensor_event = None
+            if bool(self.sensor_event):  
+                self.sensor_event.cancel()
+                self.sensor_event = None
             self.vid.release()
             cv2.destroyAllWindows()
 
