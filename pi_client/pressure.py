@@ -35,7 +35,7 @@ class PressureSensor(BaseSensor):
             self.sensor_event.cancel()
 
     def callback(self, message: str):
-        defaultMaker.discord_report(json={"content": message})
+        defaultMaker.ws_server_report(message)
 
     def pressure_check(self):
         while self.enabled:

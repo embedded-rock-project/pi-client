@@ -1,5 +1,5 @@
 """
-Rocco Ahching
+Rocco
 25 August 2021
 Embedded Programming
 Low-level abstractions of Discord's Embed structure

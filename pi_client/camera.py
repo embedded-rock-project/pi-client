@@ -1,12 +1,15 @@
 
+from email.policy import default
 import cv2
 import asyncio
 from typing import Optional
 from requests_toolbelt import MultipartEncoder
 from io import BytesIO
 import time
-
+import numpy as np
 from http_reqs import defaultMaker
+
+
 
 
 class Camera:
@@ -48,27 +51,20 @@ class Camera:
             self.enable_camera()
 
     def _report_to_discord(self, frame, message):
+
         # encode raw bytes to png format
-        is_success, buffer = cv2.imencode(".png", frame)
+        is_success, buffer = cv2.imencode(".jpg", frame)
 
         # create bytesIO stream object to be sent as multipart form data
-        # this is an http requirement.
         output_bytes = BytesIO(buffer)
 
         # properly encode data to send to discord here.
-        req_data = MultipartEncoder(
-            fields={
-                "file": ("test.png", output_bytes, "image/png"),
-                "payload_json": '{{"content":"{}","tts":false}}'.format(message).encode()
-                }
-            )
-
-        print(message)
+        req_data = MultipartEncoder(fields={"file": ("test.jpg", output_bytes, "image/jpeg"), "payload_json": '{{"content":"{}","tts":false}}'.format(message).encode()})
+        
         # report to webhook.
         #defaultMaker.discord_report(headers={"content-type": req_data.content_type}, data=req_data.to_string())
 
     def standard_survelliance(self):
-        print('Loading Camera Feed...')
         while self.enabled:
 
             # read frame off of video
@@ -78,10 +74,12 @@ class Camera:
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
             # apply a gaussian blur to mimic old-time camera effect
-            frame_gray_blur = cv2.GaussianBlur(frame_gray, (21, 21), 0)
+            frame_gray_blur = cv2.GaussianBlur(frame_gray, (5, 5), 0)
 
             # display frame to screen
-            cv2.imshow('survelliance', frame_gray_blur)
+            hello, image = cv2.imencode('.jpg', frame_gray_blur)
+            img = np.array(image).tobytes()
+            defaultMaker.ws_img_feed_send(img)
 
             # wait one millisecond, if break key occurs break from loop
             # want to remove
@@ -91,8 +89,6 @@ class Camera:
 
 
     def facial_recognition(self):
-        print("Face recognition")
-
         # set variables outside of loop
         detect_faces = False
         offset = 0
@@ -113,8 +109,9 @@ class Camera:
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
 
             # display edited frame
-            cv2.imshow('face_detect', frame)
-
+            hello, image = cv2.imencode('.jpg', frame)
+            img = np.array(image).tobytes()
+            defaultMaker.ws_img_feed_send(img)
             # check if length of faces (if any were detected) is same as previous runthrough.
             # this is a buffer system to detect false switches from detecting face to not, or vice cersa
             if (len(faces) > 0) != detect_faces:
@@ -128,9 +125,8 @@ class Camera:
                     # change detect_faces to current bool of if face is detected
                     detect_faces = (len(faces) > 0)
 
-                    # report to Discord right now.
-                    self._report_to_discord(
-                        frame, "Face detected!" if detect_faces else "Face has left.")
+                    # report to website
+                    defaultMaker.ws_server_report("Face detected!" if detect_faces else "Face has left.")
 
                     # reset offset so checks can begin again.
                     offset = 0
@@ -144,8 +140,6 @@ class Camera:
                 break
 
     def motion_blur(self):
-        print("Motion blur")
-
         # create variable outside of loop.
         background = None
         detected_movement = False
@@ -198,7 +192,8 @@ class Camera:
                     if offset > 5:
                         detected_movement = (len(notable_outlines) > 0)
                         if detected_movement:
-                            print("Camera detected movement!")
+                            defaultMaker.ws_server_report("There was movement!")
+                            defaultMaker.ws_img_feed_send(frame)
                         offset = 0
                 else:
                     offset = 0
@@ -211,10 +206,13 @@ class Camera:
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
                 # display all four cameras.
-                cv2.imshow("Threshold", threshold)
-                cv2.imshow("Subtraction", subtraction)
-                cv2.imshow("Contour", contourimg)
-                cv2.imshow("motion_tracking", frame)
+                cv2.imshow("first", frame)
+                cv2.imshow("subtraction", subtraction)
+                cv2.imshow("threshold", threshold)
+                cv2.imshow("contouring", contourimg)
+                # hello, image = cv2.imencode('.jpg', frame)
+                # img = np.array(image).tobytes()
+                # defaultMaker.ws_img_feed_send(img)
 
                 # set new background to compare to.
                 background = gray
@@ -222,6 +220,7 @@ class Camera:
                 # check for break key. I want to remove this.
                 if cv2.waitKey(1) & 0xFF == ord('s'):
                     break
+
         except Exception as e:
             print(e)
 
@@ -232,30 +231,43 @@ class Camera:
             detected_movement = False
             offset = 0
             while self.enabled:
-                ret, frame = self.vid.read()
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                gray = cv2.GaussianBlur(gray, (21, 21), 0)
-                if background is None:
-                    background = gray
-                    continue
-                subtraction = cv2.absdiff(background, gray)
-                retval, threshold = cv2.threshold(subtraction, 20, 255, cv2.THRESH_BINARY)
-                outlines, heirarchy = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-                notable_outlines = list(filter(lambda c: cv2.contourArea(c) > 500, outlines))
-                if (len(notable_outlines) > 0) != detected_movement:
-                    offset += 1
-                    if offset > 5:
-                        detected_movement = (len(notable_outlines) > 0)
-                        if detected_movement:
-                            print("there was movement!")
+                try:
+                    ret, frame = self.vid.read()
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    gray = cv2.GaussianBlur(gray, (21, 21), 0)
+                    if background is None:
+                        background = gray
+                        continue
+                    subtraction = cv2.absdiff(background, gray)
+                    retval, threshold = cv2.threshold(subtraction, 25, 255, cv2.THRESH_BINARY)
+                    outlines, heirarchy = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                    notable_outlines = list(filter(lambda c: cv2.contourArea(c) > 500, outlines))
+                    if (len(notable_outlines) > 0) != detected_movement:
+                        offset += 1
+                        if offset > 5:
+                            detected_movement = (len(notable_outlines) > 0)
+                            defaultMaker.ws_server_report("There was movement!" if detected_movement else "Movement stopped.")
+                            offset = 0
+                    else:
                         offset = 0
-                else:
-                    offset = 0
-                for c in notable_outlines:
-                    (x, y, w, h) = cv2.boundingRect(c)
-                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                cv2.imshow("subtraction", subtraction)  
-                cv2.imshow("motion_tracking", frame)
-                background = gray
-                if cv2.waitKey(1) & 0xFF == ord('s'):
-                    break
+                    for c in notable_outlines:
+                        (x, y, w, h) = cv2.boundingRect(c)
+                        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                    #cv2.imshow("motion_tracking", frame)
+                    # cv2.imshow("first", frame)
+                    # cv2.imshow("subtraction", subtraction)
+                    # cv2.imshow("threshold", threshold)
+                    hello, image = cv2.imencode('.jpg', frame)
+                    img = np.array(image).tobytes()
+                    defaultMaker.ws_img_feed_send(img)
+                    background = gray
+                    if cv2.waitKey(1) & 0xFF == ord('s'):
+                        break
+                except Exception as e:
+                    print(e)
+
+    def test_img(self):
+        frame = cv2.imread("anime1.jpg")
+        hello, image = cv2.imencode('.jpg', frame)
+        img = np.array(image).tobytes()
+        defaultMaker.ws_img_feed_send(img)
