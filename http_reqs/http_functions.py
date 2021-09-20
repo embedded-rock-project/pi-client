@@ -26,6 +26,8 @@ class RequestMaker:
         self._await(self.session.close())
 
     def close(self):
+        self._await(self.ws_image_feed.send_str("disconnect_request"))
+        self._await(asyncio.sleep(1))
         self.__exit__(None, None, None)
 
     async def create_session(self, **kwargs) -> aiohttp.ClientSession:

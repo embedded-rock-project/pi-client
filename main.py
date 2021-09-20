@@ -3,6 +3,7 @@
 # from config import *
 # from http_reqs import *
 
+
 from pi_client import Camera
 from http_reqs import defaultMaker
 import asyncio
@@ -10,17 +11,26 @@ import nest_asyncio
 nest_asyncio.apply()
 import time
 import json
+import traceback
+
 
 async def main():
     cam = Camera(2)
+    #ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
     with cam:
         async for msg in defaultMaker.ws_server_listen():
             if not msg.data:
                 break
             msg = json.loads(msg.data)
-            test = msg.get('mode')
-            if test or test == 0:
-                cam.switch_camera_mode(test)
+            selection = {
+                "camera": lambda mode: cam.switch_camera_mode(mode),
+               #"motion": lambda mode: ms.enable_sensor() if mode else ms.disable_sensor()
+            }
+            mode = msg["mode"]
+            sensor = msg["sensor"]
+            if mode or mode == 0:
+                selection.get(sensor, lambda mode: print("Invalid sensor: {}\nMode: {}".format(sensor, mode)))(mode)
+
 
 
    # ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
@@ -37,9 +47,11 @@ async def main():
 
 
 if (__name__ == "__main__"):
-    # try:
+    try:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
+    except Exception as e:
+        traceback.print_stack()
+    finally:
+        defaultMaker.close()
         loop.close()
-    # except Exception as e:
-    #     print(e)

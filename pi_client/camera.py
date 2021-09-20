@@ -8,6 +8,7 @@ from io import BytesIO
 import time
 import numpy as np
 from http_reqs import defaultMaker
+import traceback
 
 
 
@@ -264,8 +265,10 @@ class Camera:
                     background = gray
                     if cv2.waitKey(1) & 0xFF == ord('s'):
                         break
+                except ConnectionResetError:
+                    break
                 except Exception as e:
-                    print(e)
+                    traceback.print_exc()
 
     def test_img(self):
         frame = cv2.imread("anime1.jpg")
