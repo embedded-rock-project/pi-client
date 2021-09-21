@@ -3,19 +3,22 @@
 # from config import *
 # from http_reqs import *
 
+import nest_asyncio
+nest_asyncio.apply()
 
 from pi_client import Camera
 from http_reqs import defaultMaker
 import asyncio
-import nest_asyncio
-nest_asyncio.apply()
+
+
 import time
 import json
 import traceback
 
 
 async def main():
-    cam = Camera(2)
+    new_loop = asyncio.new_event_loop()
+    cam = Camera(2, loop=new_loop)
     #ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
     with cam:
         async for msg in defaultMaker.ws_server_listen():
@@ -26,10 +29,20 @@ async def main():
                 "camera": lambda mode: cam.switch_camera_mode(mode),
                #"motion": lambda mode: ms.enable_sensor() if mode else ms.disable_sensor()
             }
-            mode = msg["mode"]
             sensor = msg["sensor"]
-            if mode or mode == 0:
+            isOn = msg["isSensorOn"]
+            mode = msg["mode"]
+            if isOn and mode in [0, 1, 2]:
                 selection.get(sensor, lambda mode: print("Invalid sensor: {}\nMode: {}".format(sensor, mode)))(mode)
+            elif isOn:
+                selection.get(sensor, lambda mode: print("Invalid sensor: {}\nMode: {}".format(sensor, cam.camera_mode_choice)))(cam.camera_mode_choice)
+
+            elif not isOn:
+                selection = {
+                    "camera": lambda: cam.disable_camera(),
+                    #"motion": lambda: ms.disable_sensor(),
+                }
+                selection.get(sensor, lambda: print("Invalid sensor: {}".format(sensor)))()
 
 
 
@@ -51,7 +64,7 @@ if (__name__ == "__main__"):
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
     except Exception as e:
-        traceback.print_stack()
+        traceback.print_exc()
     finally:
         defaultMaker.close()
         loop.close()

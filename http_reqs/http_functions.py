@@ -4,6 +4,9 @@ Rocco
 Embedded Programming
 Aiohttp session setup for asyncronhous requests.
 """
+import nest_asyncio
+nest_asyncio.apply()
+
 
 import aiohttp
 import asyncio
@@ -61,9 +64,9 @@ class RequestMaker:
         return self._await(request.json())
 
 
-    def ws_server_report(self, data: Any, **kwargs):
-        data = json.dumps(data) if isinstance(data, dict) else str(data)
-        self._await(self.ws_server_connection.send_str(data))
+    def ws_server_report(self, sensor: str, type: str, message: Any, **kwargs):
+        data = {"sensor": sensor, "type": type, "message": message, **kwargs}
+        self._await(self.ws_server_connection.send_json(data))
 
     
     def ws_img_feed_send(self, data: Any, **kwargs):

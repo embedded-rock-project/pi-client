@@ -1,5 +1,9 @@
+from concurrent.futures import ThreadPoolExecutor
+import nest_asyncio
+nest_asyncio.apply()
 
-from email.policy import default
+
+
 import cv2
 import asyncio
 from typing import Optional
@@ -23,6 +27,7 @@ class Camera:
         self.loop = loop if loop else asyncio.get_event_loop()
         self.cv2Cascades = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
         self.camera_modes = [self.standard_survelliance, self.facial_recognition, self.motion_blur_clean]
+        
 
     def __enter__(self):
         self.enable_camera()
@@ -35,6 +40,7 @@ class Camera:
             self.enabled = True
             self.vid = cv2.VideoCapture(self.camera)
             if not bool(self.sensor_event):
+                #self.sensor_event = self.pool.submit(fn=self.camera_modes[self.camera_mode_choice])
                 self.sensor_event = self.loop.run_in_executor(None, self.camera_modes[self.camera_mode_choice])
 
     def disable_camera(self):
@@ -128,7 +134,8 @@ class Camera:
                     detect_faces = (len(faces) > 0)
 
                     # report to website
-                    defaultMaker.ws_server_report("Face detected!" if detect_faces else "Face has left.")
+                    result = ("camera", True, 1) if detect_faces else ("camera", True, 0)
+                    defaultMaker.ws_server_report(*result)
 
                     # reset offset so checks can begin again.
                     offset = 0
@@ -248,7 +255,8 @@ class Camera:
                         offset += 1
                         if offset > 5:
                             detected_movement = (len(notable_outlines) > 0)
-                            defaultMaker.ws_server_report("There was movement!" if detected_movement else "Movement stopped.")
+                            result = ("camera", "report", "Motion detected") if detected_movement else ("camera", "report", "Motion stopped")
+                            defaultMaker.ws_server_report(*result)
                             offset = 0
                     else:
                         offset = 0
@@ -266,12 +274,8 @@ class Camera:
                     if cv2.waitKey(1) & 0xFF == ord('s'):
                         break
                 except ConnectionResetError:
+                    print("connection lost")
                     break
                 except Exception as e:
                     traceback.print_exc()
-
-    def test_img(self):
-        frame = cv2.imread("anime1.jpg")
-        hello, image = cv2.imencode('.jpg', frame)
-        img = np.array(image).tobytes()
-        defaultMaker.ws_img_feed_send(img)
+                    continue
