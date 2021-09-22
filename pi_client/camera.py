@@ -12,7 +12,7 @@ from io import BytesIO
 import time
 import numpy as np
 from http_reqs import defaultMaker
-import traceback
+#import traceback
 
 
 
@@ -30,17 +30,19 @@ class Camera:
         
 
     def __enter__(self):
-        self.enable_camera()
+        self.enabled = True
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.disable_camera()
+
+    def get_mode(self):
+        return self.camera_mode_choice
 
     def enable_camera(self):
         if not self.enabled:
             self.enabled = True
             self.vid = cv2.VideoCapture(self.camera)
             if not bool(self.sensor_event):
-                #self.sensor_event = self.pool.submit(fn=self.camera_modes[self.camera_mode_choice])
                 self.sensor_event = self.loop.run_in_executor(None, self.camera_modes[self.camera_mode_choice])
 
     def disable_camera(self):
@@ -49,14 +51,15 @@ class Camera:
             if bool(self.sensor_event):  
                 self.sensor_event.cancel()
                 self.sensor_event = None
-            self.vid.release()
+            if (self.vid):
+                self.vid.release()
             cv2.destroyAllWindows()
 
     def switch_camera_mode(self, choice: int):
-        if choice != self.camera_mode_choice:
-            self.camera_mode_choice = choice
-            self.disable_camera()
-            self.enable_camera()
+        # if choice != self.camera_mode_choice:
+        self.camera_mode_choice = choice
+        self.disable_camera()
+        self.enable_camera()
 
     def _report_to_discord(self, frame, message):
 
@@ -263,10 +266,6 @@ class Camera:
                     for c in notable_outlines:
                         (x, y, w, h) = cv2.boundingRect(c)
                         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                    #cv2.imshow("motion_tracking", frame)
-                    # cv2.imshow("first", frame)
-                    # cv2.imshow("subtraction", subtraction)
-                    # cv2.imshow("threshold", threshold)
                     hello, image = cv2.imencode('.jpg', frame)
                     img = np.array(image).tobytes()
                     defaultMaker.ws_img_feed_send(img)
@@ -276,6 +275,7 @@ class Camera:
                 except ConnectionResetError:
                     print("connection lost")
                     break
-                except Exception as e:
-                    traceback.print_exc()
-                    continue
+                except cv2.error:
+                    #traceback.print_exc()
+                    break
+                    #continue

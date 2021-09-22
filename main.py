@@ -20,22 +20,29 @@ async def main():
     new_loop = asyncio.new_event_loop()
     cam = Camera(2, loop=new_loop)
     #ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
+
+    last_msg = None 
     with cam:
         async for msg in defaultMaker.ws_server_listen():
             if not msg.data:
                 break
             msg = json.loads(msg.data)
+            if last_msg == msg:
+                continue
+            last_msg = msg
+            
+
+            sensor = msg["sensor"]
+            isOn = msg["isSensorOn"]
+            mode = msg["mode"]
             selection = {
                 "camera": lambda mode: cam.switch_camera_mode(mode),
                #"motion": lambda mode: ms.enable_sensor() if mode else ms.disable_sensor()
             }
-            sensor = msg["sensor"]
-            isOn = msg["isSensorOn"]
-            mode = msg["mode"]
             if isOn and mode in [0, 1, 2]:
                 selection.get(sensor, lambda mode: print("Invalid sensor: {}\nMode: {}".format(sensor, mode)))(mode)
             elif isOn:
-                selection.get(sensor, lambda mode: print("Invalid sensor: {}\nMode: {}".format(sensor, cam.camera_mode_choice)))(cam.camera_mode_choice)
+                selection.get(sensor, lambda mode: print("Invalid sensor: {}\nMode: {}".format(sensor, cam.get_mode())))(cam.get_mode())
 
             elif not isOn:
                 selection = {
@@ -43,6 +50,8 @@ async def main():
                     #"motion": lambda: ms.disable_sensor(),
                 }
                 selection.get(sensor, lambda: print("Invalid sensor: {}".format(sensor)))()
+            else:
+                print(bool(isOn), bool(mode in [0, 1, 2]))
 
 
 
