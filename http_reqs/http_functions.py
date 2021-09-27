@@ -12,7 +12,7 @@ import aiohttp
 import asyncio
 
 from typing import Any, Optional
-from config import server_base_url, server_ws_endpoint, discord_base_url
+from config import server_base_url, discord_base_url
 import json
 
 
@@ -22,8 +22,8 @@ class RequestMaker:
         self._await = self.loop.run_until_complete
         self._nowait = self.loop.create_task
         self.session: aiohttp.ClientSession = self._await(self.create_session())
-        self.ws_server_connection: aiohttp.ClientWebSocketResponse = self._await(self.session.ws_connect(server_ws_endpoint + "/pi", timeout=5))
-        self.ws_image_feed: aiohttp.ClientWebSocketResponse = self._await(self.session.ws_connect(server_ws_endpoint + "/pi_camera_feed", timeout=5))
+        self.ws_server_connection: aiohttp.ClientWebSocketResponse = self._await(self.session.ws_connect(server_base_url+ "/pi", timeout=5))
+        self.ws_image_feed: aiohttp.ClientWebSocketResponse = self._await(self.session.ws_connect(server_base_url + "/pi_camera_feed", timeout=5))
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._await(self.session.close())

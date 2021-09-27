@@ -1,12 +1,10 @@
-# from helper import *
-# from pi_client import *
-# from config import *
-# from http_reqs import *
+from helper import *
+from pi_client import *
+from config import *
+from http_reqs import *
 
 import nest_asyncio
 nest_asyncio.apply()
-
-from pi_client import Camera
 from http_reqs import defaultMaker
 import asyncio
 
@@ -19,10 +17,12 @@ import traceback
 async def main():
     new_loop = asyncio.new_event_loop()
     cam = Camera(2, loop=new_loop)
-    #ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
+    ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
+    ps = PressureSensor(GPIO.BCM, GPIO.IN, 25)
+    ds = DistanceSensor(GPIO.BOARD, (7, GPIO.IN), (11, GPIO.OUT))
 
     last_msg = None 
-    with cam:
+    with ms, ps, ds, cam:
         async for msg in defaultMaker.ws_server_listen():
             if not msg.data:
                 break
@@ -37,34 +37,26 @@ async def main():
             mode = msg["mode"]
             selection = {
                 "camera": lambda mode: cam.switch_camera_mode(mode),
-               #"motion": lambda mode: ms.enable_sensor() if mode else ms.disable_sensor()
+                "motion": lambda mode: ms.enable_sensor() if mode else ms.disable_sensor(),
+                "pressure": lambda mode: ps.enable_sensor() if mode else ps.disable_sensor(),
+                "distance": lambda mode: ds.enable_sensor() if mode else ds.disable_sensor()
             }
             if isOn and mode in [0, 1, 2]:
                 selection.get(sensor, lambda mode: print("Invalid sensor: {}\nMode: {}".format(sensor, mode)))(mode)
             elif isOn:
-                selection.get(sensor, lambda mode: print("Invalid sensor: {}\nMode: {}".format(sensor, cam.get_mode())))(cam.get_mode())
+                selection.get(sensor, lambda sensor: print("Invalid sensor: {}\nMode: {}".format(sensor)))(sensor)
 
             elif not isOn:
                 selection = {
                     "camera": lambda: cam.disable_camera(),
-                    #"motion": lambda: ms.disable_sensor(),
+                    "motion": lambda: ms.disable_sensor(),
+                    "pressure": lambda: ps.disable_sensor(),
+                    "distance": lambda: ds.disable_sensor()
+
                 }
                 selection.get(sensor, lambda: print("Invalid sensor: {}".format(sensor)))()
             else:
                 print(bool(isOn), bool(mode in [0, 1, 2]))
-
-
-
-   # ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
-   # ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
-   # ds = DistanceSensor(GPIO.BCM, (4, GPIO.OUT), (17, GPIO.IN))
-    # cam = Camera(2)
-    # with cam: 
-    #     time.sleep(120)
-        # cam.switch_camera_mode(2)
-        # time.sleep(120)
-        # cam.switch_camera_mode(0)
-        # time.sleep(1200)
 
 
 
