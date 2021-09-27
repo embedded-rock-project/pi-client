@@ -44,7 +44,7 @@ async def main():
             if isOn and mode in [0, 1, 2]:
                 selection.get(sensor, lambda mode: print("Invalid sensor: {}\nMode: {}".format(sensor, mode)))(mode)
             elif isOn:
-                selection.get(sensor, lambda sensor: print("Invalid sensor: {}\nMode: {}".format(sensor)))(sensor)
+                selection.get(sensor, lambda sensor: print("Invalid sensor: {}".format(sensor)))(sensor)
 
             elif not isOn:
                 selection = {
