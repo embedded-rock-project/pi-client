@@ -63,7 +63,7 @@ class Camera:
 
     def _report_to_discord(self, frame, message):
 
-        # encode raw bytes to png format
+        # encode raw bytes to jpg format
         is_success, buffer = cv2.imencode(".jpg", frame)
 
         # create bytesIO stream object to be sent as multipart form data
@@ -210,7 +210,7 @@ class Camera:
                 else:
                     offset = 0
 
-                # apply rectangles to image.
+                # draw rectangles on image.
                 for c in notable_outlines:
 
                     # get rectangle coordinates
@@ -269,7 +269,7 @@ class Camera:
                     else:
                         offset = 0
                         
-                    #puts a frame around any notable movement areas attached to the image sent through https
+                    #puts a frame around any notable movement areas drawn on the image sent to the website
                     for c in notable_outlines:
                         (x, y, w, h) = cv2.boundingRect(c)
                         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
