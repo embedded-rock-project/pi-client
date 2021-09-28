@@ -2,6 +2,8 @@
 All of the code here is my own -R
 Varun helped me understand the pin configuration and wrote the original design
 However, I encapsulated it in order to keep things clean.
+
+-D forgot the base specs for each of the sensors but pretty sure this one has a .2 N to 20 N trigger range
 """
 
 from http_reqs import RequestMaker, defaultMaker
