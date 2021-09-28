@@ -18,6 +18,8 @@ from http_reqs import defaultMaker
 
 
 class Camera:
+
+    # Initialization
     def __init__(self, camera_mode_choice: int, camera: int = 0, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         self.enabled = False
         self.sensor_event = None
@@ -25,19 +27,26 @@ class Camera:
         self.camera = camera
         self.camera_mode_choice = camera_mode_choice
         self.loop = loop if loop else asyncio.get_event_loop()
+
+        # Get default OpenCV image recognition model
         self.cv2Cascades = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        
+        # set possible camera modes
         self.camera_modes = [self.standard_survelliance, self.facial_recognition, self.motion_blur_clean]
         
-
+    # Enter as enabled by default. This is so switch camera mode works.
     def __enter__(self):
         self.enabled = True
 
+    # Call disable camera on exit of class.
     def __exit__(self, exc_type, exc_value, traceback):
         self.disable_camera()
 
+    # getter for mode.
     def get_mode(self):
         return self.camera_mode_choice
 
+    # enable camera. Avoids seg faults from OpenCV attempting to access camera on multiple threads.
     def enable_camera(self):
         if not self.enabled:
             self.enabled = True
@@ -45,6 +54,7 @@ class Camera:
             if not bool(self.sensor_event):
                 self.sensor_event = self.loop.run_in_executor(None, self.camera_modes[self.camera_mode_choice])
 
+    # Disable camera. Avoid calling NoneTypes and destroys openCV windows.
     def disable_camera(self):
         if self.enabled:
             self.enabled = False
@@ -55,12 +65,14 @@ class Camera:
                 self.vid.release()
             cv2.destroyAllWindows()
 
+    # Switch camera mode. Input int to choose which mode.
     def switch_camera_mode(self, choice: int):
         # if choice != self.camera_mode_choice:
         self.camera_mode_choice = choice
         self.disable_camera()
         self.enable_camera()
 
+    # unused for demo. Would report data + image to discord.
     def _report_to_discord(self, frame, message):
 
         # encode raw bytes to jpg format
@@ -74,6 +86,7 @@ class Camera:
         
         # report to webhook.
         #defaultMaker.discord_report(headers={"content-type": req_data.content_type}, data=req_data.to_string())
+
 
     def standard_survelliance(self):
         while self.enabled:
@@ -151,14 +164,14 @@ class Camera:
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
 
+
     def motion_blur(self):
         # create variable outside of loop.
         background = None
         detected_movement = False
         offset = 0
-        try:
-            while self.enabled:
-
+        while self.enabled:
+            try:
                 # read frame from camera
                 ret, frame = self.vid.read()
 
@@ -217,14 +230,10 @@ class Camera:
                     (x, y, w, h) = cv2.boundingRect(c)
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-                # display all four cameras.
-                cv2.imshow("first", frame)
-                cv2.imshow("subtraction", subtraction)
-                cv2.imshow("threshold", threshold)
-                cv2.imshow("contouring", contourimg)
-                # hello, image = cv2.imencode('.jpg', frame)
-                # img = np.array(image).tobytes()
-                # defaultMaker.ws_img_feed_send(img)
+                # Send data over webhook.
+                hello, image = cv2.imencode('.jpg', frame)
+                img = np.array(image).tobytes()
+                defaultMaker.ws_img_feed_send(img)
 
                 # set new background to compare to.
                 background = gray
@@ -233,8 +242,13 @@ class Camera:
                 if cv2.waitKey(1) & 0xFF == ord('s'):
                     break
 
-        except Exception as e:
-            print(e)
+            except ConnectionResetError:
+                print("connection lost")
+                break
+            except cv2.error:
+                #traceback.print_exc()
+                break
+
 
 
     #same code as above just compact
