@@ -4,6 +4,7 @@ Varun helped me understand the pin configuration and wrote the original design
 However, I encapsulated it in order to keep things clean.
 
 -D forgot the base specs for each of the sensors but pretty sure this one has a .2 N to 20 N trigger range
+it'll be placed under the rock and if the rock is off then the pressure change? not the lack of pressure triggers it.
 """
 
 from http_reqs import RequestMaker, defaultMaker
