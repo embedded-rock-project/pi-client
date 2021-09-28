@@ -3,7 +3,8 @@ import time
 from http_reqs import defaultMaker
 import asyncio
 
-
+#uses ultrasonic waves and radar detection to gauge distances
+#important to note the sensor has a periphery of 15* and a 5 dc power supply -> a max 2 meter range
 class DistanceSensor:
     def __init__(self, mode, pin_trigger, pin_echo, loop=None):
         self.enabled = False
@@ -12,7 +13,7 @@ class DistanceSensor:
         self.pin_trigger_int = pin_trigger[0]
         self.pin_echo_int = pin_echo[0]
         GPIO.setmode(mode)  # GPIO.BOARD
-        GPIO.setup(pin_trigger[0], pin_trigger[1])
+        GPIO.setup(pin_trigger[0], pin_trigger[1]) #
         GPIO.setup(pin_echo[0], pin_echo[1])
         self.loop = loop if loop else asyncio.get_event_loop()
 
@@ -36,12 +37,12 @@ class DistanceSensor:
     def check_distance(self):
         while self.enabled:
 
-            #GPIO.output(self.pin_trigger_int, GPIO.LOW)
+            #GPIO.output(self.pin_trigger_int, GPIO.LOW) < just rewritten
             GPIO.output(self.pin_trigger_int, True)
             
             time.sleep(0.00001)
 
-            #GPIO.output(self.pin_trigger_int, GPIO.HIGH)
+            #GPIO.output(self.pin_trigger_int, GPIO.HIGH) < just rewritten
             GPIO.output(self.pin_trigger_int, False)
             
             
@@ -52,6 +53,8 @@ class DistanceSensor:
                 pulse_end_time = time.time()
                 
             pulse_duration = pulse_end_time - pulse_start_time
+            
+            #formula based on the hardware specs of the wave has a max range of 2 meters
             distance = round(pulse_duration * 17150, 2)
             if (distance <= 100):
                 if (not self.currently_detecting):
