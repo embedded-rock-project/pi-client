@@ -2,6 +2,9 @@
 All of the code here is my own -R
 Varun helped me understand the pin configuration and wrote the original design
 However, I encapsulated it in order to keep things clean.
+
+Motion sensor seems to also work on the camera dont know what that entails about the redundancy of this sensor lmao
+this is very straight forward though
 """
 
 
