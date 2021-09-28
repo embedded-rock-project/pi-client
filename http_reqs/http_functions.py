@@ -17,6 +17,8 @@ import json
 
 
 class RequestMaker:
+
+    # Initialization
     #sets up request structure including image streaming, websocket connection, and event flag waiting loop
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         self.loop = loop if loop else asyncio.get_event_loop()
@@ -26,35 +28,39 @@ class RequestMaker:
         self.ws_server_connection: aiohttp.ClientWebSocketResponse = self._await(self.session.ws_connect(server_base_url+ "/pi", timeout=5))
         self.ws_image_feed: aiohttp.ClientWebSocketResponse = self._await(self.session.ws_connect(server_base_url + "/pi_camera_feed", timeout=5))
             
+    # cleans up aiohttp clientSession (required)
     def __exit__(self, exc_type, exc_value, traceback):
         self._await(self.session.close())
 
+    # manually close requestMaker.
     def close(self):
         self._await(self.ws_image_feed.send_str("disconnect_request"))
         self._await(asyncio.sleep(1))
         self.__exit__(None, None, None)
 
+    # create aiohttp ClientSession (required to make async calls)
     async def create_session(self, **kwargs) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(**kwargs)
    
-#server logs to http website
+    #server logs to http website
     async def async_http_server_report(self, endpoint: str, payload: Any) -> str:
         async with self.session.post(url=server_base_url + endpoint, json=payload) as req:
             return await req.text()
 
+    # Unused.
     def http_server_report(self, endpoint: str, **kwargs) -> str:
         return self.request("POST", server_base_url + endpoint, **kwargs)
-#server logs to discord
+
+    #server logs to discord
     def discord_report(self, **kwargs) -> str:
         return self.request("POST", discord_base_url, **kwargs)
 
+    # base request that discord/server requests are based on.
     def request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
-        try:
-            return self._await(self.session.request(method, url, **kwargs))
-        except Exception:
-            pass 
-        
-    # Literally same functionality as above except can be excecuted asynchronously.
+        return self._await(self.session.request(method, url, **kwargs))
+ 
+
+    # Same functionality as above except can be excecuted asynchronously.
     async def async_request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
         return await self.session.request(method, url, **kwargs)
 
@@ -68,15 +74,16 @@ class RequestMaker:
     def req_json(self, request: aiohttp.ClientResponse) -> dict:
         return self._await(request.json())
 
-
+    # report to server via established websocket.
     def ws_server_report(self, sensor: str, type: str, message: Any, **kwargs):
         data = {"sensor": sensor, "type": type, "message": message, **kwargs}
         self._await(self.ws_server_connection.send_json(data))
 
-    
+    # send binary image data over websocket.
     def ws_img_feed_send(self, data: Any, **kwargs):
         self._await(self.ws_image_feed.send_bytes(data))
     
+    # async generator for "as completed" messages from the server.
     async def ws_server_listen(self):
         while True:
             yield await self.ws_server_connection.receive()

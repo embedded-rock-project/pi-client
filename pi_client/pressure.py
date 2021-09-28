@@ -8,7 +8,7 @@ it'll be placed under the rock and if the rock is off then the pressure change? 
 """
 
 from http_reqs import RequestMaker, defaultMaker
-from helper.base_sensor import BaseSensor
+from helper import BaseSensor
 import RPi.GPIO as GPIO
 from asyncio import sleep
 import time
@@ -19,24 +19,34 @@ import time
 # GPIO.setup(pin, GPIO.IN)
 
 class PressureSensor(BaseSensor):
+
+    # constructor.
     def __init__(self, mode, setup, pin: int):
+
+        # super initialization.
         super().__init__(mode, setup, pin)
         self.last_input = 0
 
     def __enter__(self):
+        # do nothing here, disabled by default.
         pass
 
+    # enable sensor. Check if already enabled to avoid extraneous calls to pressure_check.
     def enable_sensor(self):
         if not self.enabled:
             self.enabled = True
             self.sensor_event = self.loop.run_in_executor(None, self.pressure_check)
 
+    # disable sensor. Check if already disabled to avoid calls on NoneTypes.
     def disable_sensor(self):
         if self.enabled:
             self.enabled = False
             self.sensor_event.cancel()
 
+    # Callback that GPIO can use.
     def callback(self, type: int):
+
+        # int to boolean: python handles bools as 0 or 1. 1 = true, 0 = false.
         if type:
             #defaultMaker.discord_report(json={"content": message})
             result = ("pressure", "report", "Pressure not detected")
@@ -45,7 +55,8 @@ class PressureSensor(BaseSensor):
             result = ("pressure", "report", "Pressure applied")
             defaultMaker.ws_server_report(*result)
 
-
+    # only call callback if input != previous input.
+    # checks for pressure.
     def pressure_check(self):
         while self.enabled:
             input = GPIO.input(self.pin)

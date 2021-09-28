@@ -1,7 +1,9 @@
 import json
 
-
+#linux:
 # with open('/'.join(__file__.split('/')[:-2]) + "/config.json") as f:
+
+
 #loads json and configs server (virtual server) and discord url
 with open('/'.join(__file__.split('/')[:-1]) + "/config.json") as f:
     config = json.load(f)

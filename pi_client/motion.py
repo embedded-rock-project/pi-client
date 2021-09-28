@@ -11,7 +11,7 @@ this is very straight forward though
 import RPi.GPIO as GPIO
 from http_reqs import RequestMaker, defaultMaker
 from asyncio import sleep
-from helper.base_sensor import BaseSensor
+from helper import BaseSensor
 import time
 
 
@@ -25,21 +25,24 @@ class MotionSensor(BaseSensor):
         self.motion_count = 0
 
     def __enter__(self):
+        # do nothing here, disabled by default. 
         pass
 
+    # report to server/discord, using server only due to wifi blocks.
     def callback(self, sensor_pin: int):
         #defaultMaker.discord_report(json={"content": "Motion sensor detected movement!"})
         result = ("motion", "report", "Motion detected")
         defaultMaker.ws_server_report(*result)
         self.currently_motion += 1
 
+    # enable sensor. Check if enabled so no repeated added events.
     def enable_sensor(self):
         if (not self.enabled):
             self.enabled = True
             GPIO.add_event_detect(self.pin, GPIO.RISING, callback=self.callback)
             self.sensor_event = self.loop.run_in_executor(None, self.check)
 
-
+    # disable sensor. Check if already disabled to avoid calls to NoneTypes.
     def disable_sensor(self):
         if (self.enabled):
             self.enabled = False
@@ -48,7 +51,7 @@ class MotionSensor(BaseSensor):
                 self.sensor_event.cancel()
                 self.sensor_event = None
 
-
+    # check if motion stops being detected so checkmark refreshes on page.
     async def check(self):
         while self.enabled:
             start = self.motion_count
