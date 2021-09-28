@@ -21,8 +21,7 @@ class PressureSensor(BaseSensor):
         self.last_input = 0
 
     def __enter__(self):
-        self.enabled = True
-        self.sensor_event = self.loop.run_in_executor(None, self.pressure_check)
+        pass
 
     def enable_sensor(self):
         if not self.enabled:
@@ -34,13 +33,20 @@ class PressureSensor(BaseSensor):
             self.enabled = False
             self.sensor_event.cancel()
 
-    def callback(self, message: str):
-        defaultMaker.ws_server_report(message)
+    def callback(self, type: int):
+        if type:
+            #defaultMaker.discord_report(json={"content": message})
+            result = ("pressure", "report", "Pressure not detected")
+            defaultMaker.ws_server_report(*result)
+        else:
+            result = ("pressure", "report", "Pressure applied")
+            defaultMaker.ws_server_report(*result)
+
 
     def pressure_check(self):
         while self.enabled:
             input = GPIO.input(self.pin)
             if (self.last_input != input):
-                self.callback("Pressure sensor detected pressure!")
+                self.callback(input)
             self.last_input = input
             time.sleep(0.1)

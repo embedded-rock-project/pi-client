@@ -18,11 +18,11 @@ async def main():
     new_loop = asyncio.new_event_loop()
     cam = Camera(2, loop=new_loop)
     ms = MotionSensor(GPIO.BCM, GPIO.IN, 23)
-    ps = PressureSensor(GPIO.BCM, GPIO.IN, 25)
-    ds = DistanceSensor(GPIO.BOARD, (7, GPIO.IN), (11, GPIO.OUT))
+    ps = PressureSensor(GPIO.BCM, GPIO.IN, 24)
+    ds = DistanceSensor(GPIO.BCM, (18, GPIO.OUT), (25, GPIO.IN))
 
     last_msg = None 
-    with ms, ps, ds, cam:
+    with ms, ps, cam:
         async for msg in defaultMaker.ws_server_listen():
             if not msg.data:
                 break

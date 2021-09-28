@@ -47,8 +47,11 @@ class RequestMaker:
         return self.request("POST", discord_base_url, **kwargs)
 
     def request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
-        return self._await(self.session.request(method, url, **kwargs))
-
+        try:
+            return self._await(self.session.request(method, url, **kwargs))
+        except Exception:
+            pass 
+        
     # Literally same functionality as above except can be excecuted asynchronously.
     async def async_request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
         return await self.session.request(method, url, **kwargs)

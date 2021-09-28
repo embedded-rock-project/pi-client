@@ -7,6 +7,7 @@ import asyncio
 class DistanceSensor:
     def __init__(self, mode, pin_trigger, pin_echo, loop=None):
         self.enabled = False
+        self.currently_detecting = False
         self.sensor_event = None
         self.pin_trigger_int = pin_trigger[0]
         self.pin_echo_int = pin_echo[0]
@@ -16,7 +17,7 @@ class DistanceSensor:
         self.loop = loop if loop else asyncio.get_event_loop()
 
     def __enter__(self):
-        self.enable_sensor()
+        self.enabled = True
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.disable_sensor()
@@ -34,17 +35,32 @@ class DistanceSensor:
 
     def check_distance(self):
         while self.enabled:
-            GPIO.output(self.pin_trigger_int, GPIO.LOW)
-            time.sleep(2)
-            GPIO.output(self.pin_trigger_int, GPIO.HIGH)
+
+            #GPIO.output(self.pin_trigger_int, GPIO.LOW)
+            GPIO.output(self.pin_trigger_int, True)
+            
             time.sleep(0.00001)
-            GPIO.output(self.pin_trigger_int, GPIO.LOW)
-            while GPIO.input(self.pin_trigger_int) == 0:
+
+            #GPIO.output(self.pin_trigger_int, GPIO.HIGH)
+            GPIO.output(self.pin_trigger_int, False)
+            
+            
+            while GPIO.input(self.pin_echo_int) == 0:
                 pulse_start_time = time.time()
-            while GPIO.input(self.pin_trigger_int) == 1:
+
+            while GPIO.input(self.pin_echo_int) == 1:
                 pulse_end_time = time.time()
+                
             pulse_duration = pulse_end_time - pulse_start_time
             distance = round(pulse_duration * 17150, 2)
-            print("wtf")
-            defaultMaker.discord_report(
-                json={"content": f"Distance: {distance} cm"})
+            if (distance <= 100):
+                if (not self.currently_detecting):
+                    result = ("distance", "report", f"Disturbance detected! Distance from sensor: {distance} cm")
+                    defaultMaker.ws_server_report(*result)
+                    self.currently_detecting = True
+            else:
+                if (self.currently_detecting):
+                    result = ("distance", "report", "Disturbance not detected.")
+                    defaultMaker.ws_server_report(*result)
+                    self.currently_detecting = False
+            time.sleep(1)

@@ -1,4 +1,4 @@
 {
-    "server_url": "https://school1.next-gen.dev",
+    "server_url": "http://127.0.0.1:8080",
     "discord_webhook": "https://canary.discord.com/api/webhooks/887932734478094346/4b9eBcFqrOyC82wr_E3IZt62Awrw2OaVSL0B_Dca2KTIuRTI0mWf7UFoLt9ijD4pCVaM"
 }

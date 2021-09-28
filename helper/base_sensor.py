@@ -2,7 +2,6 @@ import RPi.GPIO as GPIO
 import asyncio
 from typing import Optional
 
-
 class BaseSensor:
     def __init__(self, mode, setup, pin: int, loop: Optional[asyncio.AbstractEventLoop] = None):
         GPIO.setmode(mode) #GPIO.BCM
@@ -11,7 +10,7 @@ class BaseSensor:
         self.loop = loop if loop else asyncio.get_event_loop()
         self._await = self.loop.run_until_complete
         self._nowait = self.loop.create_task
-        self.enabled = True
+        self.enabled = False
         self.sensor_event = None
 
     def disable_sensor(self):
