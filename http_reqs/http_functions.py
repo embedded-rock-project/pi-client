@@ -17,6 +17,7 @@ import json
 
 
 class RequestMaker:
+    #sets up request structure including image streaming, websocket connection, and event flag waiting loop
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         self.loop = loop if loop else asyncio.get_event_loop()
         self._await = self.loop.run_until_complete
@@ -24,7 +25,7 @@ class RequestMaker:
         self.session: aiohttp.ClientSession = self._await(self.create_session())
         self.ws_server_connection: aiohttp.ClientWebSocketResponse = self._await(self.session.ws_connect(server_base_url+ "/pi", timeout=5))
         self.ws_image_feed: aiohttp.ClientWebSocketResponse = self._await(self.session.ws_connect(server_base_url + "/pi_camera_feed", timeout=5))
-
+            
     def __exit__(self, exc_type, exc_value, traceback):
         self._await(self.session.close())
 
@@ -35,14 +36,15 @@ class RequestMaker:
 
     async def create_session(self, **kwargs) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(**kwargs)
-
+   
+#server logs to http website
     async def async_http_server_report(self, endpoint: str, payload: Any) -> str:
         async with self.session.post(url=server_base_url + endpoint, json=payload) as req:
             return await req.text()
 
     def http_server_report(self, endpoint: str, **kwargs) -> str:
         return self.request("POST", server_base_url + endpoint, **kwargs)
-
+#server logs to discord
     def discord_report(self, **kwargs) -> str:
         return self.request("POST", discord_base_url, **kwargs)
 
