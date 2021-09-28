@@ -2,6 +2,7 @@ import RPi.GPIO as GPIO
 import asyncio
 from typing import Optional
 
+#basic script for any sensor. uses asyncio for event oriented triggers 
 class BaseSensor:
     def __init__(self, mode, setup, pin: int, loop: Optional[asyncio.AbstractEventLoop] = None):
         GPIO.setmode(mode) #GPIO.BCM
