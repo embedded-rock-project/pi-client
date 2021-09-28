@@ -237,23 +237,28 @@ class Camera:
             print(e)
 
 
-
+    #same code as above just compact
     def motion_blur_clean(self):
             background = None
             detected_movement = False
             offset = 0
             while self.enabled:
                 try:
+                    #background
                     ret, frame = self.vid.read()
                     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                     gray = cv2.GaussianBlur(gray, (21, 21), 0)
                     if background is None:
                         background = gray
                         continue
+                        
+                    #sets up the contour finding and motion detection
                     subtraction = cv2.absdiff(background, gray)
                     retval, threshold = cv2.threshold(subtraction, 25, 255, cv2.THRESH_BINARY)
                     outlines, heirarchy = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
                     notable_outlines = list(filter(lambda c: cv2.contourArea(c) > 500, outlines))
+                    
+                    #motion detection using outline regcognition and magnitude of change over a period of time
                     if (len(notable_outlines) > 0) != detected_movement:
                         offset += 1
                         if offset > 5:
@@ -263,6 +268,8 @@ class Camera:
                             offset = 0
                     else:
                         offset = 0
+                        
+                    #puts a frame around any notable movement areas attached to the image sent through https
                     for c in notable_outlines:
                         (x, y, w, h) = cv2.boundingRect(c)
                         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
