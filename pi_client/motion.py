@@ -31,16 +31,16 @@ class MotionSensor(BaseSensor):
     # report to server/discord, using server only due to wifi blocks.
     def callback(self, sensor_pin: int):
         #defaultMaker.discord_report(json={"content": "Motion sensor detected movement!"})
-        result = ("motion", "report", "Motion detected")
+        result = ("motion", "report", "Motion sensed")
         defaultMaker.ws_server_report(*result)
-        self.currently_motion += 1
+        self.motion_count += 1
 
     # enable sensor. Check if enabled so no repeated added events.
     def enable_sensor(self):
         if (not self.enabled):
             self.enabled = True
             GPIO.add_event_detect(self.pin, GPIO.RISING, callback=self.callback)
-            self.sensor_event = self.loop.run_in_executor(None, self.check)
+            self.sensor_event = self.loop.create_task(self.check())
 
     # disable sensor. Check if already disabled to avoid calls to NoneTypes.
     def disable_sensor(self):
@@ -57,6 +57,6 @@ class MotionSensor(BaseSensor):
             start = self.motion_count
             await sleep(1)
             if self.motion_count == start:
-                result = ("motion", "report", "Motion not detected")
+                result = ("motion", "report", "Motion not sensed")
                 defaultMaker.ws_server_report(*result)
             

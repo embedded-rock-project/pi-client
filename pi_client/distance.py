@@ -19,9 +19,9 @@ class DistanceSensor:
         GPIO.setup(pin_echo[0], pin_echo[1])
         self.loop = loop if loop else asyncio.get_event_loop()
 
-    # do nothing on enter. Disabled by default.
+    # do nothing on enter. Enabled by default.
     def __enter__(self):
-        pass
+        self.enabled = True
 
     # cleanup on exit of class. 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -38,6 +38,7 @@ class DistanceSensor:
     def enable_sensor(self):
         if not self.enabled:
             self.enabled = True
+        if not bool(self.sensor_event):
             self.sensor_event = self.loop.run_in_executor(None, self.check_distance)
 
     # check distance from sensor.
@@ -66,7 +67,6 @@ class DistanceSensor:
             
             #formula based on the hardware specs of the wave has a max range of 2 meters
             distance = round(pulse_duration * 17150, 2)
-
             # only do callback if distance is less than 100 (someone intercepted beam)
             if (distance <= 100):
                 if (not self.currently_detecting):
